@@ -1,0 +1,12 @@
+.DS_Store
+.idea/
+.vscode/
+.env
+.env.local
+node_modules/
+.next/
+out/
+build/
+target/
+*.iml
+*.tsbuildinfo
