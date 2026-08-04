@@ -4,7 +4,7 @@ WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
 COPY src src
-RUN --mount=type=cache,target=/root/.m2 chmod +x mvnw && ./mvnw -B -Dmaven.test.skip=true clean package
+RUN --mount=type=cache,id=toogeduler-maven,target=/root/.m2 chmod +x mvnw && ./mvnw -B -Dmaven.test.skip=true clean package
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
