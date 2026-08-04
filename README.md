@@ -4,7 +4,7 @@
 
 ## 구성
 
-- `web`: Next.js 15 + TypeScript 프론트엔드
+- `web`: Next.js 16 + TypeScript 프론트엔드
 - `api`: Spring Boot 3 + Spring Security + JPA API
 - PostgreSQL 16
 
@@ -40,17 +40,57 @@ npm run dev
 
 데모 로그인: `minji@toogeduler.app` / `password123!`
 
-## 소셜 로그인 설정
-
-`api/src/main/resources/application.yml`의 환경변수에 Google/Kakao OAuth 키를 설정하면 로그인 버튼이 활성화됩니다.
-
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`
-
 ## 주요 API
 
 - `/api/auth/*` 회원가입·로그인
 - `/api/events/*` 일정 CRUD 및 공개 URL
 - `/api/groups/*` 그룹·초대 링크·그룹 캘린더
 - `/api/groups/{id}/availability` 전원 및 후보 가능 시간 계산
+- `/api/notifications/*` 알림 목록·읽음 처리
 
+## Google·Kakao 소셜 로그인 설정
+
+애플리케이션 코드는 준비되어 있으며, 발급받은 키는 저장소에 작성하지 않고 실행 환경변수로 전달합니다.
+
+### Google
+
+Google Cloud Console의 OAuth 2.0 클라이언트에 다음 URI를 등록합니다.
+
+- 승인된 JavaScript 원본: `http://localhost:3000`
+- 승인된 리디렉션 URI: `http://localhost:8080/login/oauth2/code/google`
+
+### Kakao
+
+Kakao Developers의 `[앱] → [플랫폼 키] → [REST API 키]`에서 Redirect URI와 Client Secret을 설정하고, 동의 항목에서 닉네임을 활성화합니다. Toogeduler는 서버 REST API 방식이므로 JavaScript 키는 사용하지 않습니다. 이메일 권한이 없는 일반 앱에서도 카카오 고유 회원번호로 가입할 수 있습니다.
+
+- Redirect URI: `http://localhost:8080/login/oauth2/code/kakao`
+- REST API 키를 `KAKAO_CLIENT_ID`로 사용
+- Client Secret을 활성화한 경우 `KAKAO_CLIENT_SECRET`으로 사용
+
+### `.env` 작성
+
+```bash
+cd api
+cp .env.example .env
+```
+
+`api/.env` 파일의 아래 항목에 발급값을 입력합니다.
+
+```dotenv
+GOOGLE_CLIENT_ID=발급값
+GOOGLE_CLIENT_SECRET=발급값
+KAKAO_CLIENT_ID=발급값
+KAKAO_CLIENT_SECRET=발급값
+```
+
+이후 API를 실행하면 Spring Boot가 `.env`를 자동으로 읽습니다.
+
+```bash
+./mvnw spring-boot:run
+```
+
+운영 환경에서는 `WEB_URL`과 `OAUTH_REDIRECT_BASE_URL`도 각각 실제 웹·API HTTPS 주소로 지정합니다.
+
+## Railway + Vercel 배포
+
+Railway에 Spring Boot API와 PostgreSQL을, Vercel에 Next.js 웹을 배포하는 전체 절차는 [배포 가이드](docs/DEPLOYMENT.md)를 참고하세요.

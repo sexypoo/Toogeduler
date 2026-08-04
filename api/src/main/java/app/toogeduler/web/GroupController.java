@@ -2,6 +2,7 @@ package app.toogeduler.web;
 
 import app.toogeduler.domain.*;
 import app.toogeduler.repo.*;
+import app.toogeduler.service.NotificationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,12 @@ import java.util.*;
 
 @RestController @RequestMapping("/api/groups") @RequiredArgsConstructor
 public class GroupController {
-    private final GroupRepository groups; private final GroupMemberRepository members; private final EventRepository events;
+    private final GroupRepository groups; private final GroupMemberRepository members; private final EventRepository events; private final NotificationService notificationService;
     @Value("${app.web-url}") String webUrl;
     public record GroupInput(@NotBlank @Size(max=40)String name,String color){}
     @GetMapping List<Map<String,Object>> mine(Authentication auth){User u=ApiSupport.user(auth);return members.findByUserId(u.getId()).stream().map(m->view(m.getGroup())).toList();}
     @PostMapping @Transactional Map<String,Object> create(Authentication auth,@Valid @RequestBody GroupInput body){User u=ApiSupport.user(auth);Group g=new Group();g.setName(body.name());g.setColor(body.color()==null?"#19B7B1":body.color());g.setOwner(u);g.setInviteToken(randomToken());g=groups.save(g);GroupMember m=new GroupMember();m.setGroup(g);m.setUser(u);m.setRole(GroupMember.Role.OWNER);members.save(m);return view(g);}
-    @PostMapping("/join/{token}") @Transactional Map<String,Object> join(Authentication auth,@PathVariable String token){User u=ApiSupport.user(auth);Group g=groups.findByInviteToken(token).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"유효하지 않은 초대 링크입니다."));if(!members.existsByGroupIdAndUserId(g.getId(),u.getId())){GroupMember m=new GroupMember();m.setGroup(g);m.setUser(u);members.save(m);}return view(g);}
+    @PostMapping("/join/{token}") @Transactional Map<String,Object> join(Authentication auth,@PathVariable String token){User u=ApiSupport.user(auth);Group g=groups.findByInviteToken(token).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"유효하지 않은 초대 링크입니다."));if(!members.existsByGroupIdAndUserId(g.getId(),u.getId())){List<GroupMember> existing=members.findByGroupId(g.getId());GroupMember m=new GroupMember();m.setGroup(g);m.setUser(u);members.save(m);for(GroupMember member:existing)notificationService.notify(member.getUser(),Notification.Type.GROUP_JOINED,"그룹에 새 멤버가 참여했어요",u.getName()+"님이 "+g.getName()+"에 참여했어요.","/?group="+g.getId(),"group-joined:"+g.getId()+":"+u.getId()+":"+member.getUser().getId());}return view(g);}
     @PostMapping("/{id}/invite/refresh") Map<String,Object> refresh(Authentication auth,@PathVariable Long id){User u=ApiSupport.user(auth);Group g=memberGroup(id,u);g.setInviteToken(randomToken());groups.save(g);return Map.of("inviteUrl",webUrl+"/invite/"+g.getInviteToken());}
     @GetMapping("/{id}/events") List<Map<String,Object>> calendar(Authentication auth,@PathVariable Long id,@RequestParam OffsetDateTime from,@RequestParam OffsetDateTime to){User u=ApiSupport.user(auth);memberGroup(id,u);Map<Long,Event> visible=new LinkedHashMap<>();events.groupCalendar(id,from,to).forEach(e->visible.put(e.getId(),e));events.busyEvents(List.of(u.getId()),from,to).stream().filter(e->e.getOwner().getId().equals(u.getId())).forEach(e->visible.put(e.getId(),e));return visible.values().stream().flatMap(e->EventController.occurrenceViews(e,from,to).stream()).toList();}
     @DeleteMapping("/{id}/members/me") @Transactional @ResponseStatus(HttpStatus.NO_CONTENT) void leave(Authentication auth,@PathVariable Long id){User u=ApiSupport.user(auth);Group g=memberGroup(id,u);if(g.getOwner().getId().equals(u.getId()))throw new ApiException(HttpStatus.CONFLICT,"그룹장을 다른 멤버에게 양도한 후 탈퇴할 수 있습니다.");members.delete(members.findByGroupIdAndUserId(id,u.getId()).orElseThrow());}
