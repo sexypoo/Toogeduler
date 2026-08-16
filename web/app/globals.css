@@ -77,3 +77,47 @@
 .friend-calendar-toolbar{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 5px}.friend-calendar-toolbar h2{font-size:17px;letter-spacing:-.6px;margin:0 0 0 7px}.friend-calendar-surface{position:relative;background:white;border:1px solid #dfe8ed;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px #143a5010}.friend-calendar-loading{min-height:630px;display:flex;align-items:center;justify-content:center;gap:10px;color:#778896;font-size:11px}.friend-week .week-scroll{height:620px;min-height:620px}.friend-week .day-lane{min-height:1080px;cursor:default}.friend-week .event-block,.friend-month .month-grid button{cursor:pointer}.friend-calendar-note{min-height:48px;padding:0 4px;display:flex;align-items:center;gap:7px;color:#7b8b99;font-size:9px}.friend-calendar-note svg{width:14px;color:#159a96}.friend-calendar-note b{margin-left:auto;color:#168f8b;background:#e6f7f5;border-radius:20px;padding:4px 9px;font-size:9px}.friend-calendar-error{min-height:calc(100vh - 72px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#778896}.friend-calendar-error>svg{width:34px;height:34px;color:#159a96}.friend-calendar-error h1{font-size:22px;color:#21394e;margin:15px 0 5px}.friend-calendar-error p{font-size:11px;margin:0 0 20px}.friend-event-detail{width:min(440px,100%);padding:24px;background:white;border-radius:18px;box-shadow:0 25px 80px #0b273955}.friend-event-detail>header{display:grid;grid-template-columns:6px 1fr 36px;gap:12px;align-items:start}.friend-event-detail>header>span{height:50px;border-radius:5px}.friend-event-detail header small{color:#15928d;font-size:8px}.friend-event-detail h2{font-size:23px;letter-spacing:-.8px;margin:4px 0 20px}.friend-event-meta{display:flex;gap:11px;align-items:flex-start;padding:12px 0;border-top:1px solid #edf1f4}.friend-event-meta>svg{width:17px;color:#168f9a}.friend-event-meta>span{display:flex;flex-direction:column}.friend-event-meta b{font-size:11px}.friend-event-meta small{font-size:9px;color:#7e8d9b;margin-top:4px}.friend-event-detail>p{margin:13px 0 0;padding:14px;background:#f5f8fa;border-radius:10px;color:#5c6f7e;font-size:11px;line-height:1.7;white-space:pre-wrap}.friend-event-detail>footer{display:flex;justify-content:flex-end;margin-top:20px}.friend-event-detail>footer .primary{min-width:78px}
 
 @media(max-width:760px){.friend-calendar-wrap{width:calc(100% - 24px);margin-top:20px}.friend-profile-hero{align-items:flex-start;padding:22px;flex-wrap:wrap}.friend-profile-avatar{width:66px;height:66px;border-radius:20px}.friend-profile-avatar img{border-radius:20px}.friend-profile-copy h1{font-size:23px}.shared-ribbon{width:100%;margin:2px 0 0}.friend-calendar-toolbar{height:auto;padding:18px 2px;align-items:flex-end;gap:13px}.friend-calendar-toolbar .period{display:grid;grid-template-columns:auto auto auto}.friend-calendar-toolbar .period h2{grid-column:1/4;margin:4px 0 0}.friend-calendar-surface{overflow-x:auto}.friend-week,.friend-month{min-width:720px}.friend-calendar-note{align-items:flex-start;padding-top:13px}.friend-calendar-note b{white-space:nowrap}.friend-profile-hero:after{opacity:.55}}
+
+/* Touch affordances and native safe areas */
+.week-head>div:not(.tz),.month-grid>div{cursor:pointer}
+.week-head>div:not(.tz):hover{background:#f7fafc}
+.week-head>div:not(.tz):focus-visible,.month-grid>div:focus-visible{position:relative;z-index:3;outline:3px solid #8ad8ff;outline-offset:-3px}
+
+@media(max-width:600px){
+ :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+ html,body{min-height:100dvh}
+ .app-shell,.focused-page,.public-feed,.login-page,.public-page,.invite-page{min-height:100dvh}
+
+ .topbar{height:calc(62px + var(--safe-top));padding:var(--safe-top) 12px 0;display:grid;grid-template-columns:88px minmax(0,1fr) 88px;justify-content:normal}
+ .topbar .mobile-menu{justify-self:start;width:44px;height:44px;border:1px solid #e3eaef;background:#f7f9fb;border-radius:13px}
+ .topbar .page-title{justify-self:center;justify-content:center;max-width:100%;white-space:nowrap;overflow:hidden}
+ .topbar .page-title>span{overflow:hidden;text-overflow:ellipsis}
+ .topbar .top-actions{justify-self:end;width:88px;justify-content:flex-end;gap:0}
+ .topbar .icon-btn,.topbar .avatar{width:44px;height:44px;border-radius:13px}
+ .topbar .notification{background:#f7f9fb;border:1px solid #e3eaef}
+
+ .focused-header,.public-feed>header{height:calc(62px + var(--safe-top));padding:var(--safe-top) 14px 0;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);position:relative;z-index:40}
+ .focused-header .brand,.public-feed>header .brand{height:44px;padding:0;justify-self:center}
+ .focused-header .brand-mark,.public-feed>header .brand-mark{width:38px;height:38px;border-radius:12px}
+ .focused-header .back-link,.focused-header .feed-login,.public-feed>header .back-link,.public-feed>header .feed-login{min-width:44px;min-height:44px;max-width:100%;padding:0 10px;border:1px solid #e3eaef;background:#f7f9fb;border-radius:13px;white-space:nowrap;overflow:hidden;touch-action:manipulation}
+ .focused-header .back-link,.public-feed>header .back-link{justify-self:start}
+ .focused-header .feed-login,.public-feed>header .feed-login{justify-self:end}
+ .focused-header .back-link svg,.focused-header .feed-login svg,.public-feed>header .back-link svg,.public-feed>header .feed-login svg{width:18px;height:18px;flex:none}
+
+ .sidebar{padding-top:calc(18px + var(--safe-top));padding-bottom:calc(18px + var(--safe-bottom));height:100dvh}
+ .login-panel{min-height:100dvh;padding-top:calc(24px + var(--safe-top));padding-bottom:calc(24px + var(--safe-bottom))}
+ .public-page,.invite-page{padding:calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom))}
+ .center-state{min-height:100dvh;padding:var(--safe-top) 20px var(--safe-bottom)}
+ .group-create-layout{min-height:calc(100dvh - 62px - var(--safe-top))}
+
+ .modal-scrim{padding:calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom))}
+ .event-modal{max-height:calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom))}
+ .availability,.group-settings{height:100dvh;padding-bottom:var(--safe-bottom)}
+ .availability>header,.group-settings>header{padding-top:calc(18px + var(--safe-top))}
+ .notification-panel{top:calc(62px + var(--safe-top));max-height:calc(100dvh - 74px - var(--safe-top) - var(--safe-bottom))}
+ .toast{bottom:calc(20px + var(--safe-bottom));max-width:calc(100vw - 24px);white-space:nowrap}
+
+ .week-head>div:not(.tz){touch-action:manipulation}
+ .month-grid>div{position:relative;touch-action:manipulation}
+ .month-grid>div:active,.week-head>div:not(.tz):active{background:#edf7fb}
+}
