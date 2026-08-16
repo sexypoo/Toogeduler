@@ -158,3 +158,19 @@
  .event-modal footer{margin-top:12px;padding-top:12px}
  .event-modal footer button{min-height:40px}
 }
+
+/* Keep Android WebView chrome fixed; scroll only the calendar surface. */
+@media(max-width:600px){
+ .app-shell{position:fixed;inset:0;width:100%;height:100dvh;min-height:0;overflow:hidden;overscroll-behavior:none}
+ .workspace{height:100%;min-height:0;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none}
+ .topbar,.calendar-toolbar,.people-strip{flex:0 0 auto}
+ .calendar-card{flex:1 1 auto;min-height:0;height:auto;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none}
+ .week-calendar,.month-calendar{flex:1 1 auto;min-height:0;height:100%;display:flex;flex-direction:column}
+ .week-head,.all-day-row,.month-head{flex:0 0 auto}
+ .week-scroll{flex:1 1 auto;height:auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+ .day-lane{touch-action:pan-y}
+ .month-calendar{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+ .month-grid{flex:1 0 auto}
+ .month-grid>div{touch-action:pan-y}
+ .workspace>.people-page{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+}
