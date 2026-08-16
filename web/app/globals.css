@@ -174,3 +174,112 @@
  .month-grid>div{touch-action:pan-y}
  .workspace>.people-page{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 }
+
+/* Responsive pass for every standalone route and mobile drawer. */
+@media(max-width:760px){
+ .focused-page,.public-feed,.public-page,.invite-page,.login-page{width:100%;max-width:100%;overflow-x:hidden}
+
+ .group-create-layout{display:block;width:100%;min-height:auto;padding:22px 16px calc(30px + env(safe-area-inset-bottom,0px))}
+ .group-create-story{display:none}
+ .create-card{width:100%;max-width:480px;margin:0 auto;padding:26px 22px;border-radius:18px}
+ .create-card h2{font-size:23px;margin:7px 0 22px}
+ .large-color-picker{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+ .large-color-picker button{width:100%;max-width:42px;aspect-ratio:1;height:auto;justify-self:center;border-radius:11px}
+ .created-invite{min-width:0;padding-left:8px}
+ .created-invite input{width:0;flex:1;font-size:9px}
+
+ .profile-wrap{width:100%;margin:0;padding:26px 16px calc(36px + env(safe-area-inset-bottom,0px))}
+ .profile-identity{gap:14px;min-width:0}
+ .profile-avatar{width:68px;height:68px;border-radius:21px;flex:none}
+ .profile-avatar img{border-radius:21px}
+ .profile-identity>div:last-child{min-width:0}
+ .profile-identity h1{font-size:25px;margin-top:5px}
+ .profile-identity>div:last-child>span,.account-card b{overflow-wrap:anywhere}
+ .profile-stats{gap:7px;margin:22px 0}
+ .profile-stats article{height:72px;padding:11px;gap:7px;min-width:0}
+ .profile-stats article>svg{width:17px}
+ .profile-stats b{font-size:17px}
+ .profile-card,.account-card{padding:20px}
+ .profile-card>header{gap:10px;flex-wrap:wrap}
+ .profile-card>.primary{width:100%}
+
+ .public-hero{min-height:210px;padding:38px 16px}
+ .public-hero>div{position:relative;z-index:1;max-width:80%}
+ .public-hero h1{font-size:32px;line-height:1.16;letter-spacing:-1.4px}
+ .globe-orbit{right:-55px;top:24px;opacity:.28}
+ .public-search{width:calc(100% - 24px);height:50px;margin-top:-25px;padding-left:13px}
+ .public-search input{padding:0 8px;font-size:12px}
+ .public-search button{height:36px;padding:0 14px}
+ .public-feed-content{width:calc(100% - 24px);margin:38px auto 50px}
+ .public-event-card{grid-template-columns:52px minmax(0,1fr);padding:14px}
+ .event-card-body{min-width:0;padding-left:13px}
+ .event-card-body strong,.event-card-body>span{overflow:hidden;text-overflow:ellipsis}
+
+ .public-brand{width:100%;padding:0 2px}
+ .public-card,.invite-card{width:100%;padding:26px 22px;border-radius:18px}
+ .public-card h1,.invite-card h1{font-size:24px;overflow-wrap:anywhere}
+ .public-card>div{min-width:0}
+ .public-card>div span{min-width:0}
+ .public-card>div b,.public-description{overflow-wrap:anywhere}
+
+ .login-page{height:100dvh;min-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
+ .login-panel{height:auto;min-height:100dvh;align-items:flex-start;padding-left:20px;padding-right:20px;overflow:visible}
+ .login-panel form{margin:auto 0;width:min(370px,100%)}
+ .mobile-brand{margin-bottom:34px}
+
+ .friend-calendar-wrap{width:100%;margin:0;padding:18px 12px calc(30px + env(safe-area-inset-bottom,0px))}
+ .friend-profile-hero{padding:18px;border-radius:16px;gap:13px}
+ .friend-profile-avatar{width:58px;height:58px;border-radius:18px}
+ .friend-profile-avatar img{border-radius:18px}
+ .friend-profile-copy{flex:1;min-width:0}
+ .friend-profile-copy h1{font-size:21px;overflow-wrap:anywhere}
+ .friend-profile-copy>p:last-child{line-height:1.5}
+ .shared-ribbon{min-width:0}
+ .friend-calendar-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;padding:16px 2px;gap:10px}
+ .friend-calendar-toolbar .period{grid-template-rows:auto 40px;align-items:center;min-width:0}
+ .friend-calendar-toolbar .period h2{grid-column:1/4;grid-row:1;margin:0 0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .friend-calendar-toolbar .period .today,.friend-calendar-toolbar .period .nav-arrow{grid-row:2}
+ .friend-calendar-toolbar .segmented{align-self:end}
+ .friend-calendar-surface{width:100%;max-width:100%;overflow:hidden;border-radius:13px}
+ .friend-week,.friend-month{width:100%;min-width:0}
+ .friend-calendar-note{gap:6px;flex-wrap:wrap;padding:12px 2px 0;line-height:1.5}
+ .friend-calendar-note span{flex:1;min-width:220px}
+ .friend-calendar-note b{margin-left:auto}
+ .friend-event-detail{padding:20px;border-radius:17px}
+ .friend-event-detail h2{font-size:20px;overflow-wrap:anywhere}
+
+ .availability-form,.slot-results,.group-settings>section,.group-settings>footer{padding-left:17px;padding-right:17px}
+ .availability-form>div{grid-template-columns:1fr}
+ .slot-results article{grid-template-columns:54px minmax(0,1fr) auto;gap:8px;padding:12px}
+ .slot-time{min-width:0}
+ .slot-time b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .member-list article{flex-wrap:wrap}
+ .member-list article>div:nth-child(2){min-width:0;flex:1}
+ .member-list small{overflow-wrap:anywhere}
+ .member-actions{position:static!important;width:calc(100% - 45px);margin-left:45px;opacity:1;pointer-events:auto;box-shadow:none}
+ .people-empty{padding:42px 16px}
+}
+
+@media(max-width:600px){
+ .friend-week .week-head,.friend-week .all-day-row,.friend-week .week-scroll{width:100%;min-width:0;grid-template-columns:34px repeat(7,minmax(0,1fr))}
+ .friend-month .month-head,.friend-month .month-grid{width:100%;min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}
+ .friend-week .week-scroll{height:520px;min-height:420px}
+ .friend-month .month-grid{min-height:456px}
+ .friend-week .day-lane{min-width:0}
+ .friend-calendar-loading{min-height:456px}
+}
+
+@media(max-width:380px){
+ .focused-header .back-link,.focused-header .feed-login{width:44px;padding:0;justify-content:center;font-size:0}
+ .focused-header .back-link svg,.focused-header .feed-login svg{margin:0}
+ .create-card{padding:22px 17px}
+ .profile-stats article{justify-content:center;padding:8px}
+ .profile-stats article>svg{display:none}
+ .friend-code-card{gap:10px;padding:15px}
+ .friend-code-card button{margin-left:auto}
+ .public-hero>div{max-width:90%}
+ .public-search button{padding:0 11px}
+ .public-event-card{grid-template-columns:46px minmax(0,1fr);padding:12px}
+ .availability-form span{gap:3px}
+ .availability-form input{padding:7px 5px;font-size:10px}
+}
