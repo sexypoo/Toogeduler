@@ -289,3 +289,46 @@
  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  input,select,textarea{font-size:16px!important}
 }
+
+/* Mobile calendar: favor a readable month canvas over miniature desktop density. */
+@media(max-width:600px){
+ .calendar-toolbar{min-height:58px;padding:9px 12px;align-items:center;gap:8px;background:#f5f8fb}
+ .period{display:grid;grid-template-columns:minmax(96px,1fr) 36px 36px;align-items:center;gap:2px}
+ .period h1{grid-column:1;grid-row:1;width:auto;margin:0 4px 0 0;font-size:21px;line-height:1;letter-spacing:-1.1px;white-space:nowrap}
+ .period .today{display:none}
+ .period .nav-arrow{grid-row:1;width:36px;height:36px;border:1px solid #e0e8ee;background:#fff;border-radius:11px}
+ .toolbar-actions{height:40px;gap:5px}
+ .segmented{padding:2px;border-radius:11px}
+ .segmented button{height:36px;min-width:34px;font-size:11px;border-radius:9px}
+ .find-time,.add-event{width:40px;min-width:40px;height:40px;border-radius:12px}
+
+ .calendar-card{border-top-color:#dfe7ec;box-shadow:none;background:#fff}
+ .month-head{height:42px;background:#fbfcfd;border-bottom-color:#dfe6eb}
+ .month-head span{font-size:12px;font-weight:750;color:#66778a;border-left-color:#edf1f4}
+ .month-head span:last-child{color:#e24b5e}
+ .month-grid{grid-template-rows:repeat(6,minmax(96px,1fr));min-height:600px;background:#fff}
+ .month-grid>div{padding:6px 3px;border-left-color:#edf1f4;border-bottom-color:#e2e8ed;background:#fff}
+ .month-grid>div>b{width:27px;height:27px;margin:0 auto 3px;font-size:14px;font-weight:650;border-radius:50%}
+ .month-grid>div.sunday>b{color:#e24b5e}
+ .month-grid .today-cell>b,.month-grid .today-cell.sunday>b{color:#fff;border-radius:50%;box-shadow:0 4px 10px #168cf236}
+ .month-grid .outside{background:#fafbfc;opacity:.5}
+ .month-grid button.month-event{height:21px;margin:0 0 3px;padding:0 4px;border-radius:6px;color:#fff;font-size:10px;font-weight:700;line-height:21px;gap:0;box-shadow:inset 0 -1px 0 #0000000d}
+ .month-grid button.month-event i,.month-grid button.month-event small{display:none}
+ .month-grid button.month-event>span{display:block;min-width:0;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+ .more-events{display:block;padding-left:3px;font-size:9px;font-weight:650;color:#6f7f90}
+
+ .week-head span{font-size:10px}
+ .week-head b{font-size:15px}
+ .event-block span{font-size:9px}
+ .time-axis span{font-size:8px}
+}
+
+@media(max-width:380px){
+ .calendar-toolbar{padding-left:8px;padding-right:8px;gap:5px}
+ .period{grid-template-columns:minmax(91px,1fr) 34px 34px}
+ .period h1{font-size:19px}
+ .period .nav-arrow{width:34px;height:36px}
+ .toolbar-actions{gap:3px}
+ .segmented button{min-width:31px}
+ .month-grid button.month-event{font-size:9px;padding:0 3px}
+}
