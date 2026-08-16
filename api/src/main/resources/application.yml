@@ -48,4 +48,5 @@ management:
 app:
   jwt-secret: ${JWT_SECRET:toogeduler-local-secret-key-change-this-in-production-2026}
   web-url: ${WEB_URL:http://localhost:3000}
+  mobile-url: ${MOBILE_URL:toogeduler://auth/callback}
   seed-demo: ${SEED_DEMO:true}

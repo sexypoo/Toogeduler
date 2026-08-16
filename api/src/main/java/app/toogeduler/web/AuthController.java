@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Map;
 
 @RestController @RequestMapping("/api/auth") @RequiredArgsConstructor
@@ -25,6 +28,10 @@ public class AuthController {
     @PostMapping("/login") Map<String,Object> login(@Valid @RequestBody Login body){
         User u=users.findByEmailIgnoreCase(body.email()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"이메일 또는 비밀번호를 확인해주세요."));
         if(u.getPasswordHash()==null||!passwords.matches(body.password(),u.getPasswordHash()))throw new ApiException(HttpStatus.UNAUTHORIZED,"이메일 또는 비밀번호를 확인해주세요.");return response(u);
+    }
+    @GetMapping("/mobile-oauth/{provider}") void mobileOauth(@PathVariable String provider,HttpSession session,HttpServletResponse response)throws IOException{
+        if(!provider.equals("google")&&!provider.equals("kakao"))throw new ApiException(HttpStatus.NOT_FOUND,"지원하지 않는 소셜 로그인입니다.");
+        session.setAttribute("mobile_oauth",true);response.sendRedirect("/oauth2/authorization/"+provider);
     }
     @GetMapping("/me") Map<String,Object> me(Authentication auth){return user(ensureFriendCode(ApiSupport.user(auth)));}
     @PatchMapping("/me") Map<String,Object> updateMe(Authentication auth,@Valid @RequestBody ProfileUpdate body){

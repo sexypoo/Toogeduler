@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SecurityConfig {
     private final JwtFilter jwtFilter; private final JwtService jwt; private final UserRepository users;
     @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
-    @Bean SecurityFilterChain security(HttpSecurity http,@Value("${app.web-url}")String webUrl)throws Exception{
+    @Bean SecurityFilterChain security(HttpSecurity http,@Value("${app.web-url}")String webUrl,@Value("${app.mobile-url}")String mobileUrl)throws Exception{
         http.csrf(c->c.disable()).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(a->a.requestMatchers("/api/auth/**","/api/public/**","/oauth2/**","/login/**","/error","/actuator/health/**").permitAll().anyRequest().authenticated())
             .oauth2Login(o->o.successHandler((req,res,auth)->{
@@ -35,7 +35,9 @@ public class SecurityConfig {
                 String name=oauthName(oauth);String avatar=oauthAvatar(oauth);String normalized=email.toLowerCase(Locale.ROOT);
                 User user=users.findByEmailIgnoreCase(normalized).orElseGet(()->{User u=new User(normalized,name,null);u.setProvider(provider);u.setAvatarUrl(avatar);return users.save(u);});
                 boolean changed=false;if((user.getAvatarUrl()==null||user.getAvatarUrl().isBlank())&&avatar!=null){user.setAvatarUrl(avatar);changed=true;}if(user.getFriendCode()==null||user.getFriendCode().isBlank()){user.setFriendCode(User.createFriendCode());changed=true;}if(changed)user=users.save(user);
-                res.sendRedirect(webUrl+"/auth/callback?token="+jwt.create(user.getId()));
+                boolean mobile=req.getSession(false)!=null&&Boolean.TRUE.equals(req.getSession(false).getAttribute("mobile_oauth"));
+                if(mobile)req.getSession(false).removeAttribute("mobile_oauth");
+                res.sendRedirect((mobile?mobileUrl:webUrl)+"?token="+jwt.create(user.getId()));
             }).failureHandler((req,res,error)->{String code=error instanceof OAuth2AuthenticationException oauth?oauth.getError().getErrorCode():"oauth_failed";log.warn("OAuth login failed: {}",code);res.sendRedirect(webUrl+"/login?oauthError="+URLEncoder.encode(code,StandardCharsets.UTF_8));}))
             .exceptionHandling(e->e.authenticationEntryPoint((req,res,ex)->res.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
