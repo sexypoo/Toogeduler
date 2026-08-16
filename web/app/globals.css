@@ -283,3 +283,9 @@
  .availability-form span{gap:3px}
  .availability-form input{padding:7px 5px;font-size:10px}
 }
+
+/* Keep iOS/Android WebViews from zooming the whole app when a form control is focused. */
+@media(max-width:760px){
+ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ input,select,textarea{font-size:16px!important}
+}
