@@ -54,7 +54,7 @@ public class ConfigGuard {
 
     private static boolean isLocal(String url) {
         if (url == null || url.isBlank()) return false;
-        return url.contains("localhost") || url.contains("127.0.0.1");
+        return url.contains("localhost") || url.contains("127.0.0.1") || url.startsWith("jdbc:h2:mem:");
     }
 
     private void verify() {

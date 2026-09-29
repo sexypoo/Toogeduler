@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.web.cors.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -26,7 +27,11 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter; private final JwtService jwt; private final UserRepository users;
     @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
     @Bean SecurityFilterChain security(HttpSecurity http,@Value("${app.web-url}")String webUrl,@Value("${app.mobile-url}")String mobileUrl)throws Exception{
+        // 인증 상태는 요청마다 JWT 로만 결정한다. 세션에 저장하면 로그아웃(토큰 삭제) 후에도
+        // JSESSIONID 쿠키만으로 로그인이 유지되고, CSRF 를 끈 상태에서 쿠키 인증이 열리게 된다.
+        // 세션 자체는 OAuth2 인가 요청(state) 보관용으로만 쓴다.
         http.csrf(c->c.disable()).cors(c->{}).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .securityContext(c->c.securityContextRepository(new RequestAttributeSecurityContextRepository()))
             .authorizeHttpRequests(a->a.requestMatchers("/api/auth/**","/api/public/**","/oauth2/**","/login/**","/error","/actuator/health/**").permitAll().anyRequest().authenticated())
             .oauth2Login(o->o.successHandler((req,res,auth)->{
                 OAuth2User oauth=(OAuth2User)auth.getPrincipal();
