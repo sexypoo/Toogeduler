@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "mobile:sync": "cap sync",
+    "mobile:sync": "npm run native:shell && cap sync",
     "mobile:ios": "cap open ios",
-    "mobile:android": "cap open android"
+    "mobile:android": "cap open android",
+    "native:shell": "node scripts/build-native-shell.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Toogeduler 브랜드 색 (teal #19B7B1 ~ blue #168CF2 의 중간 톤).
+         전경 마크가 흰색이므로 배경이 흰색이면 아이콘이 보이지 않는다. -->
+    <color name="ic_launcher_background">#17A1D1</color>
 </resources>
