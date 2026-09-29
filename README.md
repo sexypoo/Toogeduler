@@ -94,3 +94,26 @@ KAKAO_CLIENT_SECRET=발급값
 ## Railway + Vercel 배포
 
 Railway에 Spring Boot API와 PostgreSQL을, Vercel에 Next.js 웹을 배포하는 전체 절차는 [배포 가이드](docs/DEPLOYMENT.md)를 참고하세요.
+
+운영 배포에서 반드시 설정해야 하는 값:
+
+| 위치 | 변수 | 설명 |
+|---|---|---|
+| Railway | `JWT_SECRET` | `openssl rand -base64 48`. 기본값이면 서버가 시작을 거부합니다 |
+| Railway | `SEED_DEMO=false` | 데모 계정 생성 차단. `true`면 서버가 시작을 거부합니다 |
+| Railway | `WEB_URL` | 운영 웹 HTTPS 주소 |
+| Vercel | `NEXT_PUBLIC_OAUTH_URL` | 운영 API 주소. 없으면 소셜 로그인 버튼이 숨겨집니다 |
+| Vercel | `NEXT_PUBLIC_SHOW_DEMO=false` | 데모 계정 안내 숨기기 |
+
+## 모바일 앱 (iOS · Android)
+
+`web`은 Capacitor 네이티브 셸을 포함합니다. 빌드 시 운영 주소를 반드시 지정합니다.
+
+```bash
+cd web
+CAPACITOR_SERVER_URL=https://app.<도메인> npm run mobile:sync
+npm run mobile:ios
+```
+
+- 빌드 절차: [모바일 배포 가이드](docs/MOBILE_DEPLOYMENT.md)
+- 앱스토어 제출 절차와 심사 대응: [App Store 가이드](docs/APP_STORE.md)
