@@ -332,3 +332,44 @@
  .segmented button{min-width:31px}
  .month-grid button.month-event{font-size:9px;padding:0 3px}
 }
+
+/* ── 계정 삭제(위험 구역) & 약관 링크 ───────────────────────── */
+.danger-zone{margin-top:28px;padding:22px;border:1px solid #f2c9d3;border-radius:18px;background:#fff8fa}
+.danger-zone>header{display:flex;gap:13px;align-items:flex-start;margin-bottom:16px}
+.danger-zone>header svg{width:21px;height:21px;flex:none;color:#d3436a;margin-top:2px}
+.danger-zone h2{margin:0 0 5px;font-size:16px;font-weight:800;color:#a32c50}
+.danger-zone header p{margin:0;font-size:13px;line-height:1.6;color:#8a5a6c}
+.danger-trigger{display:inline-flex;align-items:center;gap:8px;padding:11px 17px;border:1px solid #e9a7b9;border-radius:11px;
+  background:#fff;color:#c0335c;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.danger-trigger:hover{background:#fff0f4}
+.danger-trigger svg{width:16px;height:16px}
+.danger-confirm{display:grid;gap:14px}
+.danger-confirm ul{margin:0;padding-left:19px;display:grid;gap:6px;font-size:13px;line-height:1.55;color:#7d4f60}
+.danger-confirm label{display:grid;gap:6px;font-size:12.5px;font-weight:700;color:#8a5a6c}
+.danger-confirm input{padding:12px 14px;border:1px solid #e9c3ce;border-radius:11px;background:#fff;font:inherit;color:#3d1f29}
+.danger-confirm input:focus{outline:2px solid #e58aa6;outline-offset:1px}
+.danger-actions{display:flex;gap:10px;flex-wrap:wrap}
+.danger-actions button{flex:1 1 130px;padding:12px 18px;border-radius:11px;font:inherit;font-weight:700;cursor:pointer}
+.danger-actions .ghost{border:1px solid #dfe7ea;background:#fff;color:#4c6b7a}
+.danger-actions .danger{border:0;background:#d3436a;color:#fff}
+.danger-actions .danger:disabled,.danger-actions .ghost:disabled{opacity:.6;cursor:default}
+.legal-links{margin:18px 0 0;display:flex;gap:9px;align-items:center;justify-content:center;font-size:12.5px;color:#8aa3af}
+.legal-links a{color:#4c6b7a;text-decoration:underline;text-underline-offset:2px}
+.legal-links a:hover{color:#19b7b1}
+
+/* ── 약관 / 개인정보처리방침 문서 페이지 ───────────────────── */
+.legal-page{max-width:760px;margin:0 auto;padding:calc(30px + env(safe-area-inset-top,0px)) 20px calc(56px + env(safe-area-inset-bottom,0px));
+  line-height:1.75;color:#20404f}
+.legal-page .back-link{margin-bottom:26px}
+.legal-page h1{margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.02em;color:#0b2637}
+.legal-page .updated{margin:0 0 34px;font-size:13px;color:#8aa3af}
+.legal-page h2{margin:36px 0 12px;font-size:17px;font-weight:800;color:#0b2637}
+.legal-page h3{margin:22px 0 8px;font-size:14.5px;font-weight:700;color:#20404f}
+.legal-page p{margin:0 0 14px;font-size:14.5px}
+.legal-page ul{margin:0 0 16px;padding-left:21px;display:grid;gap:7px;font-size:14.5px}
+.legal-page table{width:100%;border-collapse:collapse;margin:0 0 18px;font-size:13.5px}
+.legal-page th,.legal-page td{border:1px solid #e2ecef;padding:10px 12px;text-align:left;vertical-align:top}
+.legal-page th{background:#f4fafb;font-weight:700;color:#0b2637}
+.legal-page a{color:#0f8f8a;text-decoration:underline;text-underline-offset:2px}
+.legal-page .callout{margin:0 0 18px;padding:15px 17px;border-radius:13px;background:#f2fbfb;border:1px solid #cdeceb;font-size:14px}
+.form-notice{margin:0 0 4px;padding:11px 14px;border-radius:11px;background:#eefaf9;border:1px solid #c9e9e7;color:#0f6f6b;font-size:13px;line-height:1.55}

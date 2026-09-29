@@ -7,6 +7,9 @@ import java.util.*;
 public interface EventRepository extends JpaRepository<Event,Long>{
     Optional<Event> findByPublicToken(String token);
     long countByOwnerId(Long ownerId);
+    List<Event> findByOwnerId(Long ownerId);
+    @Query("select distinct e from Event e join e.groups g where g.id=:groupId")
+    List<Event> findByGroupId(@Param("groupId")Long groupId);
     @Query("select distinct e from Event e left join e.groups g where (e.recurrenceRule is not null or (e.endAt > :from and e.startAt < :to)) and (e.owner.id=:userId or g.id in :groupIds)")
     List<Event> calendar(@Param("userId") Long userId,@Param("groupIds") Collection<Long> groupIds,@Param("from") OffsetDateTime from,@Param("to") OffsetDateTime to);
     @Query("select distinct e from Event e left join e.groups g left join e.visibilities v where (e.recurrenceRule is not null or (e.endAt > :from and e.startAt < :to)) and (e.owner.id=:userId or e.visibility='PUBLIC' or v='PUBLIC' or ((e.visibility='FRIENDS' or v='FRIENDS') and e.owner.id in :friendIds) or ((e.visibility='GROUP' or v='GROUP') and g.id in :groupIds))")
