@@ -37,7 +37,10 @@ public class SecurityConfig {
                 boolean changed=false;if((user.getAvatarUrl()==null||user.getAvatarUrl().isBlank())&&avatar!=null){user.setAvatarUrl(avatar);changed=true;}if(user.getFriendCode()==null||user.getFriendCode().isBlank()){user.setFriendCode(User.createFriendCode());changed=true;}if(changed)user=users.save(user);
                 boolean mobile=req.getSession(false)!=null&&Boolean.TRUE.equals(req.getSession(false).getAttribute("mobile_oauth"));
                 if(mobile)req.getSession(false).removeAttribute("mobile_oauth");
-                res.sendRedirect((mobile?mobileUrl:webUrl)+"?token="+jwt.create(user.getId()));
+                // 웹은 /auth/callback 페이지가 토큰을 저장하고 주소에서 즉시 제거한다.
+                // 루트("/")로 보내면 토큰을 읽는 코드가 없어 로그인이 실패한다.
+                String target=mobile?mobileUrl:webUrl+"/auth/callback";
+                res.sendRedirect(target+"?token="+jwt.create(user.getId()));
             }).failureHandler((req,res,error)->{String code=error instanceof OAuth2AuthenticationException oauth?oauth.getError().getErrorCode():"oauth_failed";log.warn("OAuth login failed: {}",code);res.sendRedirect(webUrl+"/login?oauthError="+URLEncoder.encode(code,StandardCharsets.UTF_8));}))
             .exceptionHandling(e->e.authenticationEntryPoint((req,res,ex)->res.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
