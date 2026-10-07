@@ -7,9 +7,11 @@ const configuredOauth=(process.env.NEXT_PUBLIC_OAUTH_URL||"").replace(/\/+$/,"")
 const OAUTH_ORIGIN=configuredOauth||(process.env.NODE_ENV==="production"?"":API);
 const OAUTH_READY=OAUTH_ORIGIN!=="";
 
+// 상태 코드를 함께 담아, 호출하는 쪽이 401(로그인 만료)과 일시적인 오류를 구분할 수 있게 합니다.
+export class ApiError extends Error{constructor(public status:number,message:string){super(message);this.name="ApiError"}}
 export function token(){return typeof window==="undefined"?null:localStorage.getItem("toogeduler_token");}
 export async function api<T>(path:string,options:RequestInit={}):Promise<T>{
   const headers=new Headers(options.headers);if(options.body)headers.set("Content-Type","application/json");const value=token();if(value)headers.set("Authorization",`Bearer ${value}`);
-  const res=await fetch(`${API}${path}`,{...options,headers});if(!res.ok){const body=await res.json().catch(()=>({}));throw new Error(body.message||"요청을 처리하지 못했습니다.");}if(res.status===204)return undefined as T;return res.json();
+  const res=await fetch(`${API}${path}`,{...options,headers});if(!res.ok){const body=await res.json().catch(()=>({}));throw new ApiError(res.status,body.message||"요청을 처리하지 못했습니다.");}if(res.status===204)return undefined as T;return res.json();
 }
 export {API,OAUTH_ORIGIN,OAUTH_READY};

@@ -413,3 +413,4 @@
 .story-icon{background:#ffffff26;border-color:#ffffff40}
 .shared-ribbon{background:#ffffff1f;border-color:#ffffff40}.shared-ribbon small{color:#e4f6fb}.shared-ribbon span i{background:#fff;box-shadow:0 0 0 5px #ffffff2e}
 .friend-profile-avatar>i{border-color:#1a9ccc}
+.center-state.load-error{flex-direction:column;gap:16px;text-align:center;padding:0 24px}.center-state.load-error p{margin:0;font-size:15px;color:var(--ink-2)}

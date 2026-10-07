@@ -31,7 +31,7 @@ public class NotificationService {
                 OffsetDateTime remindAt=occurrence.startAt().minusMinutes(minutes);
                 if(remindAt.isAfter(now)||!occurrence.startAt().isAfter(now))continue;
                 String key="event-reminder:"+event.getId()+":"+occurrence.startAt();
-                notify(event.getOwner(),Notification.Type.EVENT_REMINDER,event.getTitle()+" 일정이 곧 시작해요",reminderText(minutes),"/?event="+event.getId(),key);
+                notify(event.getOwner(),Notification.Type.EVENT_REMINDER,event.getTitle()+" 일정이 곧 시작해요",reminderText(minutes),"/?event="+event.getId()+"&at="+occurrence.startAt().toInstant(),key);
             }
         }
     }
