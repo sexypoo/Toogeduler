@@ -375,15 +375,19 @@
 .form-notice{margin:0 0 4px;padding:11px 14px;border-radius:11px;background:#eefaf9;border:1px solid #c9e9e7;color:#0f6f6b;font-size:14px;line-height:1.55}
 
 /* ── 겹치는 시간: 앱 아이콘의 두 사각형과 흰 교집합을 로그인 첫 화면에 그대로 ── */
-.overlap-hero{position:absolute;right:7%;bottom:7%;width:min(400px,50%,calc(100vh - 470px));aspect-ratio:1;z-index:1}
-.overlap-hero .lane{position:absolute;width:64%;aspect-ratio:1;border-radius:22%;background:#ffffff4d;color:#fff;padding:24px;display:flex;flex-direction:column;gap:4px;animation:lane-in .9s cubic-bezier(.2,.8,.2,1) both}
-.overlap-hero .lane b{font-size:20px;font-weight:800;letter-spacing:-.4px}
-.overlap-hero .lane span{font-size:14px;color:#effbfd}
+/* 제목·설명 아래 흐름에 놓아 글과 겹치지 않게 하고, 남는 높이만큼만 커집니다. */
+@media(min-width:901px){.login-story{display:flex;flex-direction:column}}
+.overlap-hero{position:relative;flex:none;align-self:flex-end;margin:auto 3% 0 0;width:min(400px,32vw,calc(100vh - 500px));aspect-ratio:1;z-index:1;container-type:inline-size}
+.overlap-hero .lane{position:absolute;width:64%;aspect-ratio:1;overflow:hidden;border-radius:22%;background:#ffffff4d;color:#fff;padding:7.5cqw;display:flex;flex-direction:column;gap:1cqw;white-space:nowrap;animation:lane-in .9s cubic-bezier(.2,.8,.2,1) both}
+.overlap-hero .lane b{font-size:5.5cqw;font-weight:800;letter-spacing:-.02em}
+.overlap-hero .lane span{font-size:max(11px,3.8cqw);color:#effbfd}
 .overlap-hero .lane-a{left:0;top:0;--from:-14%}
 .overlap-hero .lane-b{right:0;bottom:0;justify-content:flex-end;align-items:flex-end;text-align:right;--from:14%}
-.overlap-hero .meet{position:absolute;left:36%;top:36%;width:28%;aspect-ratio:1;border-radius:50% 0 50% 0;background:#fff;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:meet-in .5s .75s ease-out both}
-.overlap-hero .meet b{font-size:clamp(15px,1.5vw,20px);font-weight:800;letter-spacing:-.5px}
-.overlap-hero .meet span{font-size:12px;color:var(--teal-strong);font-weight:650;margin-top:2px}
+.overlap-hero .meet{position:absolute;left:36%;top:36%;width:28%;aspect-ratio:1;overflow:hidden;border-radius:50% 0 50% 0;background:#fff;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;white-space:nowrap;animation:meet-in .5s .75s ease-out both}
+.overlap-hero .meet b{font-size:5.2cqw;font-weight:800;letter-spacing:-.02em}
+.overlap-hero .meet span{font-size:3.1cqw;color:var(--teal-strong);font-weight:650;margin-top:.5cqw}
+/* 제목·설명과 겹칠 만큼 창이 낮거나 좁으면 그림을 숨깁니다. */
+@media(max-height:740px){.overlap-hero{display:none}}
 @keyframes lane-in{from{transform:translate(var(--from),var(--from));opacity:.4}}
 @keyframes meet-in{from{opacity:0;transform:scale(.85)}}
 .mobile-brand .brand-mark{width:38px;height:38px}
