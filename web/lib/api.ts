@@ -4,7 +4,8 @@ const API=process.env.NEXT_PUBLIC_API_URL||"/backend";
 // 반드시 API의 실제 출처(origin)를 NEXT_PUBLIC_OAUTH_URL로 지정해야 합니다.
 // 값이 없으면 빈 문자열이 되고, 로그인 화면이 소셜 버튼을 비활성화합니다.
 const configuredOauth=(process.env.NEXT_PUBLIC_OAUTH_URL||"").replace(/\/+$/,"");
-const OAUTH_ORIGIN=configuredOauth||(process.env.NODE_ENV==="production"?"":API);
+// 개발 환경 기본값은 API 서버 주소입니다. /backend 프록시로 시작하면 API 가 Next 주소(X-Forwarded-Host)로 되돌려 보내 404 가 납니다.
+const OAUTH_ORIGIN=configuredOauth||(process.env.NODE_ENV==="production"?"":"http://localhost:8080");
 const OAUTH_READY=OAUTH_ORIGIN!=="";
 
 // 상태 코드를 함께 담아, 호출하는 쪽이 401(로그인 만료)과 일시적인 오류를 구분할 수 있게 합니다.

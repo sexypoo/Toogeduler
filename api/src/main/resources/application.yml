@@ -34,6 +34,9 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Railway 프록시가 붙여 주는 X-Forwarded-Proto/Host 를 믿어 https 주소로 리다이렉트한다.
+  # 없으면 Spring 이 자기를 http 로 알고 OAuth 시작 리다이렉트가 한 번 http 로 내려가, 세션 쿠키가 평문으로 오간다.
+  forward-headers-strategy: framework
 
 management:
   endpoints:
