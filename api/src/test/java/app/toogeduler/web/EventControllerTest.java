@@ -30,7 +30,7 @@ class EventControllerTest {
         events=mock(EventRepository.class);
         groups=mock(GroupRepository.class);
         members=mock(GroupMemberRepository.class);
-        controller=new EventController(events,groups,members,mock(FriendshipRepository.class));
+        controller=new EventController(events,groups,members);
         owner=user(1L,"owner@toogeduler.app","일정 주인");
         otherUser=user(2L,"other@toogeduler.app","다른 사용자");
         event=new Event();event.setId(10L);event.setOwner(owner);event.setTitle("내 일정");
