@@ -431,3 +431,4 @@
  .month-grid button.month-event small{flex:none;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
 }
 @media(max-width:600px){.month-grid button.month-event{background:var(--c)}}
+button.social{border:0;cursor:pointer;font:inherit}button.social.google{border:1px solid #dfe6ec;background:#fff}
