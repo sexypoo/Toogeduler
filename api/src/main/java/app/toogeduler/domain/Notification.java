@@ -7,7 +7,7 @@ import java.time.Instant;
 @Entity @Getter @Setter @NoArgsConstructor
 @Table(name="app_notifications",indexes={@Index(columnList="user_id,createdAt")},uniqueConstraints=@UniqueConstraint(columnNames={"user_id","dedupe_key"}))
 public class Notification {
-    public enum Type { FRIEND_REQUEST, FRIEND_ACCEPTED, GROUP_JOINED, EVENT_REMINDER }
+    public enum Type { FRIEND_REQUEST, FRIEND_ACCEPTED, GROUP_JOINED, EVENT_REMINDER, GROUP_EVENT }
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @ManyToOne(optional=false) private User user;
     @Enumerated(EnumType.STRING) @Column(nullable=false) private Type type;

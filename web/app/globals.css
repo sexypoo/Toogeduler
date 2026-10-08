@@ -459,3 +459,4 @@ button.social{border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-
 /* 진한 버튼은 맨 위 추천에만. 모두 '전원 가능'이어도 버튼이 줄줄이 무겁게 반복되지 않게 한다. */
 .slot-results article:first-of-type .book-slot{background:var(--teal-strong);border-color:var(--teal-strong);color:#fff}
 .slot-results article:first-of-type .book-slot:hover{background:#086b68}
+.event-modal .announce-line{margin:4px 0 10px;color:var(--teal-strong);font-weight:650}
