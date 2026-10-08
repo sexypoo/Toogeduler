@@ -451,3 +451,11 @@ button.social{border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-
  .event-modal .time-row input::-webkit-calendar-picker-indicator{display:none}
  .event-modal header{position:sticky;top:-10px;z-index:3;margin:-10px -16px 7px;padding:10px 16px 6px;background:#fff}
 }
+
+/* 추천 시간 → 바로 그룹 일정으로 */
+.slot-results .book-slot{grid-column:1/-1;height:36px;border:1px solid #a9dcd7;border-radius:9px;background:#fff;color:var(--teal-strong);font:inherit;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .15s}
+.slot-results .book-slot svg{width:15px;height:15px}
+.slot-results .book-slot:hover{background:var(--teal-wash)}
+/* 진한 버튼은 맨 위 추천에만. 모두 '전원 가능'이어도 버튼이 줄줄이 무겁게 반복되지 않게 한다. */
+.slot-results article:first-of-type .book-slot{background:var(--teal-strong);border-color:var(--teal-strong);color:#fff}
+.slot-results article:first-of-type .book-slot:hover{background:#086b68}
