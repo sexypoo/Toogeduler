@@ -30,10 +30,22 @@ class RecurrenceAndNotificationQueryTest {
         Event weekly=event(owner,"FREQ=WEEKLY",FROM.minusMonths(2));
         em.flush();
 
-        List<Event> found=events.calendar(owner.getId(),List.of(-1L),FROM,FROM.plusWeeks(1));
+        List<Event> found=events.ownedCalendar(owner.getId(),FROM,FROM.plusWeeks(1));
 
         // 빈 문자열 규칙은 반복이 아니므로 기간 밖이면 조회되지 않아야 한다.
         assertThat(found).extracting(Event::getId).containsExactly(weekly.getId()).doesNotContain(blank.getId());
+    }
+
+    @Test
+    void myCalendarShowsOnlyMyOwnEvents(){
+        // "내 캘린더"에는 친구가 공개했거나 그룹에 공유된 남의 일정이 섞이지 않아야 한다.
+        User me=em.persist(new User("me@example.com","나","hash"));
+        User friend=em.persist(new User("friend@example.com","친구","hash"));
+        Event mine=event(me,"",FROM.plusDays(1));
+        Event friendsPublic=event(friend,"",FROM.plusDays(1));friendsPublic.setVisibility(Event.Visibility.PUBLIC);friendsPublic.getVisibilities().add(Event.Visibility.PUBLIC);
+        em.flush();
+
+        assertThat(events.ownedCalendar(me.getId(),FROM,FROM.plusWeeks(1))).extracting(Event::getId).containsExactly(mine.getId());
     }
 
     @Test

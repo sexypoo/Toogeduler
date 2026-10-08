@@ -10,10 +10,9 @@ public interface EventRepository extends JpaRepository<Event,Long>{
     List<Event> findByOwnerId(Long ownerId);
     @Query("select distinct e from Event e join e.groups g where g.id=:groupId")
     List<Event> findByGroupId(@Param("groupId")Long groupId);
-    @Query("select distinct e from Event e left join e.groups g where ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.endAt > :from and e.startAt < :to)) and (e.owner.id=:userId or g.id in :groupIds)")
-    List<Event> calendar(@Param("userId") Long userId,@Param("groupIds") Collection<Long> groupIds,@Param("from") OffsetDateTime from,@Param("to") OffsetDateTime to);
-    @Query("select distinct e from Event e left join e.groups g left join e.visibilities v where ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.endAt > :from and e.startAt < :to)) and (e.owner.id=:userId or e.visibility='PUBLIC' or v='PUBLIC' or ((e.visibility='FRIENDS' or v='FRIENDS') and e.owner.id in :friendIds) or ((e.visibility='GROUP' or v='GROUP') and g.id in :groupIds))")
-    List<Event> visibleCalendar(@Param("userId")Long userId,@Param("friendIds")Collection<Long>friendIds,@Param("groupIds")Collection<Long>groupIds,@Param("from")OffsetDateTime from,@Param("to")OffsetDateTime to);
+    /** "내 캘린더": 내가 만든 일정만. 친구·그룹 일정은 각자의 화면(친구 프로필, 그룹 캘린더)에서 본다. */
+    @Query("select e from Event e where e.owner.id=:userId and ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.endAt > :from and e.startAt < :to))")
+    List<Event> ownedCalendar(@Param("userId") Long userId,@Param("from") OffsetDateTime from,@Param("to") OffsetDateTime to);
     @Query("select distinct e from Event e join e.groups g left join e.visibilities v where g.id=:groupId and exists (select 1 from GroupMember m where m.group.id=:groupId and m.user.id=e.owner.id) and (e.visibility='GROUP' or v='GROUP') and ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.endAt > :from and e.startAt < :to))")
     List<Event> groupCalendar(@Param("groupId")Long groupId,@Param("from")OffsetDateTime from,@Param("to")OffsetDateTime to);
     @Query("select e from Event e where e.owner.id in :userIds and ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.endAt > :from and e.startAt < :to))")

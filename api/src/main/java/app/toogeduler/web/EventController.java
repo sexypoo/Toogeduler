@@ -13,13 +13,11 @@ import java.util.*;
 
 @RestController @RequiredArgsConstructor
 public class EventController {
-    private final EventRepository events; private final GroupRepository groups; private final GroupMemberRepository members; private final FriendshipRepository friendships;
+    private final EventRepository events; private final GroupRepository groups; private final GroupMemberRepository members;
     // 문자열 한도는 DB 컬럼(varchar 255)에 맞춘다. 넘기면 DB 오류(500)가 나므로 여기서 400으로 막는다.
     public record EventInput(@NotBlank(message="제목을 입력해주세요.") @Size(max=100,message="제목은 100자까지 입력할 수 있어요.")String title,@Size(max=255,message="메모는 255자까지 입력할 수 있어요.")String description,@Size(max=255,message="장소는 255자까지 입력할 수 있어요.")String location,@NotNull OffsetDateTime startAt,@NotNull OffsetDateTime endAt,boolean allDay,Set<Event.Visibility>visibilities,Event.Visibility visibility,@Pattern(regexp="|FREQ=(DAILY|WEEKLY|MONTHLY)",message="반복 설정이 올바르지 않습니다.")String recurrenceRule,@Min(0) @Max(10080) Integer reminderMinutes,@Pattern(regexp="#[0-9A-Fa-f]{6}",message="색상 값이 올바르지 않습니다.")String color,Set<Long>groupIds){}
     @GetMapping("/api/events") List<Map<String,Object>> calendar(Authentication auth,@RequestParam OffsetDateTime from,@RequestParam OffsetDateTime to){
-        User user=ApiSupport.user(auth); List<Long> ids=members.findByUserId(user.getId()).stream().map(m->m.getGroup().getId()).toList();
-        Collection<Long> safeIds=ids.isEmpty()?List.of(-1L):ids;List<Long> friendIds=friendships.findByRequesterIdOrReceiverId(user.getId(),user.getId()).stream().filter(f->f.getStatus()==Friendship.Status.ACCEPTED).map(f->f.getRequester().getId().equals(user.getId())?f.getReceiver().getId():f.getRequester().getId()).toList();
-        return events.visibleCalendar(user.getId(),friendIds.isEmpty()?List.of(-1L):friendIds,safeIds,from,to).stream().flatMap(e->occurrenceViews(e,from,to).stream()).toList();
+        return events.ownedCalendar(ApiSupport.user(auth).getId(),from,to).stream().flatMap(e->occurrenceViews(e,from,to).stream()).toList();
     }
     @PostMapping("/api/events") Map<String,Object> create(Authentication auth,@Valid @RequestBody EventInput body){
         User user=ApiSupport.user(auth); validate(body); Event e=new Event(); e.setOwner(user); apply(e,body,user);e.setPublicToken(UUID.randomUUID().toString());return view(events.save(e),true);
