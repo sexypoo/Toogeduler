@@ -30,7 +30,7 @@ class EventControllerTest {
         events=mock(EventRepository.class);
         groups=mock(GroupRepository.class);
         members=mock(GroupMemberRepository.class);
-        controller=new EventController(events,groups,members);
+        controller=new EventController(events,groups,members,mock(app.toogeduler.service.NotificationService.class));
         owner=user(1L,"owner@toogeduler.app","일정 주인");
         otherUser=user(2L,"other@toogeduler.app","다른 사용자");
         event=new Event();event.setId(10L);event.setOwner(owner);event.setTitle("내 일정");
@@ -65,7 +65,7 @@ class EventControllerTest {
 
     @Test
     void anotherUserCannotUpdateEvent() {
-        EventController.EventInput input=new EventController.EventInput("바꾼 제목","","",event.getStartAt(),event.getEndAt(),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"#168CF2",Set.of());
+        EventController.EventInput input=new EventController.EventInput("바꾼 제목","","",event.getStartAt(),event.getEndAt(),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"#168CF2",Set.of(),null);
         ApiException error=assertThrows(ApiException.class,()->controller.update(auth(otherUser),10L,input));
         assertEquals(HttpStatus.FORBIDDEN,error.status);
         verify(events,never()).save(any());
@@ -77,7 +77,7 @@ class EventControllerTest {
         when(members.existsByGroupIdAndUserId(7L,1L)).thenReturn(true);
         when(groups.findById(7L)).thenReturn(Optional.of(group));
         when(events.save(any(Event.class))).thenAnswer(invocation->{Event saved=invocation.getArgument(0);saved.setId(20L);return saved;});
-        EventController.EventInput input=new EventController.EventInput("공유 일정","","",OffsetDateTime.parse("2026-08-04T10:00:00+09:00"),OffsetDateTime.parse("2026-08-04T11:00:00+09:00"),false,EnumSet.of(Event.Visibility.GROUP,Event.Visibility.FRIENDS),null,"",30,"#168CF2",Set.of(7L));
+        EventController.EventInput input=new EventController.EventInput("공유 일정","","",OffsetDateTime.parse("2026-08-04T10:00:00+09:00"),OffsetDateTime.parse("2026-08-04T11:00:00+09:00"),false,EnumSet.of(Event.Visibility.GROUP,Event.Visibility.FRIENDS),null,"",30,"#168CF2",Set.of(7L),null);
 
         Map<String,Object> result=controller.create(auth(owner),input);
 

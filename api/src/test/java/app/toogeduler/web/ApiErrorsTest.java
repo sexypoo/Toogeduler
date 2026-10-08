@@ -40,10 +40,10 @@ class ApiErrorsTest {
     @Test void eventInputRejectsValuesTheDatabaseCannotStore(){
         Validator validator=Validation.buildDefaultValidatorFactory().getValidator();
         OffsetDateTime start=OffsetDateTime.parse("2026-10-08T10:00:00+09:00");
-        EventController.EventInput tooLong=new EventController.EventInput("제목","x".repeat(256),"",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"#168CF2",Set.of());
-        EventController.EventInput badRule=new EventController.EventInput("제목","","",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"FREQ=HOURLY",null,"#168CF2",Set.of());
-        EventController.EventInput badColor=new EventController.EventInput("제목","","",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"red; drop table",Set.of());
-        EventController.EventInput ok=new EventController.EventInput("제목","메모","장소",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"FREQ=WEEKLY",30,"#19b7b1",Set.of());
+        EventController.EventInput tooLong=new EventController.EventInput("제목","x".repeat(256),"",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"#168CF2",Set.of(),null);
+        EventController.EventInput badRule=new EventController.EventInput("제목","","",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"FREQ=HOURLY",null,"#168CF2",Set.of(),null);
+        EventController.EventInput badColor=new EventController.EventInput("제목","","",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"",null,"red; drop table",Set.of(),null);
+        EventController.EventInput ok=new EventController.EventInput("제목","메모","장소",start,start.plusHours(1),false,Set.of(Event.Visibility.PRIVATE),null,"FREQ=WEEKLY",30,"#19b7b1",Set.of(),null);
         assertFalse(validator.validate(tooLong).isEmpty());
         assertFalse(validator.validate(badRule).isEmpty());
         assertFalse(validator.validate(badColor).isEmpty());
