@@ -440,3 +440,14 @@ button.social{border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-
 .event-block.with-owner{padding-right:24px}
 .month-grid button.month-event .owner-avatar{width:14px;height:14px;font-size:8px;box-shadow:none}
 @media(max-width:600px){.owner-avatar{display:none!important}.event-block.with-owner{padding-right:2px}}
+
+/* 대화창 마무리: 키보드로도 멤버 관리 버튼이 보이게, 모바일 일정 모달의 시간칸·제목줄 */
+.member-list article:focus-within .member-actions{opacity:1;pointer-events:auto}
+.event-modal:focus,.group-settings:focus,.availability:focus,.notification-panel:focus,.friend-event-detail:focus{outline:0}
+@media(max-width:600px){
+ .event-modal .time-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr)}
+ /* 휴대폰에서는 칸을 누르면 날짜·시간 선택기가 열리므로, 폭을 잡아먹는 아이콘을 숨겨 값이 잘리지 않게 한다. */
+ .event-modal .time-row input{padding:5px 8px!important}
+ .event-modal .time-row input::-webkit-calendar-picker-indicator{display:none}
+ .event-modal header{position:sticky;top:-10px;z-index:3;margin:-10px -16px 7px;padding:10px 16px 6px;background:#fff}
+}
