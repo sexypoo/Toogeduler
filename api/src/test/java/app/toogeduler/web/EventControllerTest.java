@@ -40,6 +40,15 @@ class EventControllerTest {
     }
 
     @Test
+    void publicEventDoesNotExposeOwnerEmailOrFriendCode() {
+        // /api/public/events 는 로그인 없이 열려 있으므로 작성자 정보에 연락처가 실리면 안 된다.
+        event.getVisibilities().add(Event.Visibility.PUBLIC);event.setPublicToken("public-token");
+        when(events.findByPublicToken("public-token")).thenReturn(Optional.of(event));
+        @SuppressWarnings("unchecked") Map<String,Object> publicOwner=(Map<String,Object>)controller.publicEvent("public-token").get("owner");
+        assertEquals(Set.of("id","name","avatarUrl"),publicOwner.keySet());
+    }
+
+    @Test
     void anotherUserCannotMoveEvent() {
         ApiException error=assertThrows(ApiException.class,()->controller.move(auth(otherUser),10L,Map.of(
             "startAt","2026-08-03T12:00:00+09:00","endAt","2026-08-03T13:00:00+09:00")));

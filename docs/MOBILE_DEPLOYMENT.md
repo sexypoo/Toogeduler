@@ -21,7 +21,7 @@
 
 서버는 시작할 때 설정을 검증합니다(`ConfigGuard`). `WEB_URL`이 localhost가 아닌데 `JWT_SECRET`이 기본값이거나 `SEED_DEMO=true`이면 배포가 실패합니다.
 
-웹 OAuth 콜백은 `WEB_URL/auth/callback`, 앱에서 시작한 OAuth 콜백은 `MOBILE_URL`로 돌아옵니다. Google·Kakao에 등록하는 redirect URI는 API 주소인 `https://api.<도메인>/login/oauth2/code/{provider}`입니다.
+웹 OAuth 콜백은 `WEB_URL/auth/callback`, 앱에서 시작한 OAuth 콜백은 `MOBILE_URL`로 돌아옵니다. 콜백 주소에는 토큰 대신 2분짜리 일회용 코드(`?code=`)가 실리며, 로그인을 시작한 기기가 `POST /api/auth/oauth/exchange`로 토큰과 바꿉니다. 소셜 로그인은 반드시 `/api/auth/oauth/{provider}?challenge=…`에서 시작해야 합니다(직접 `/oauth2/authorization/…`로 들어오면 거절됩니다). Google·Kakao에 등록하는 redirect URI는 API 주소인 `https://api.<도메인>/login/oauth2/code/{provider}`입니다.
 
 ## 2. 스토어 빌드
 

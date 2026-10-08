@@ -3,6 +3,8 @@ package app.toogeduler.web;
 import app.toogeduler.domain.User;
 import app.toogeduler.repo.*;
 import app.toogeduler.security.JwtService;
+import app.toogeduler.security.OAuthLoginCodes;
+import app.toogeduler.security.OAuthStart;
 import app.toogeduler.service.AccountService;
 import app.toogeduler.service.LoginAttemptService;
 import jakarta.validation.Valid;
@@ -19,11 +21,12 @@ import java.util.Map;
 
 @RestController @RequestMapping("/api/auth") @RequiredArgsConstructor
 public class AuthController {
-    private final UserRepository users; private final EventRepository events; private final GroupMemberRepository groupMembers; private final FriendshipRepository friendships; private final PasswordEncoder passwords; private final JwtService jwt; private final AccountService accounts; private final LoginAttemptService loginAttempts;
+    private final UserRepository users; private final EventRepository events; private final GroupMemberRepository groupMembers; private final FriendshipRepository friendships; private final PasswordEncoder passwords; private final JwtService jwt; private final AccountService accounts; private final LoginAttemptService loginAttempts; private final OAuthLoginCodes loginCodes;
     public record Register(@Email String email,@Size(min=2,max=30)String name,@Size(min=8,max=72)String password){}
     public record Login(@Email String email,@NotBlank String password){}
     public record ProfileUpdate(@NotBlank @Size(min=2,max=30)String name,@Size(max=255)String avatarUrl){}
     public record AccountDelete(String password){}
+    public record OAuthExchange(@NotBlank String code,@NotBlank String verifier){}
     @PostMapping("/register") Map<String,Object> register(@Valid @RequestBody Register body){
         if(users.findByEmailIgnoreCase(body.email()).isPresent())throw new ApiException(HttpStatus.CONFLICT,"이미 가입된 이메일입니다.");
         User u=users.save(new User(body.email().toLowerCase(),body.name(),passwords.encode(body.password()))); return response(u);
@@ -43,9 +46,18 @@ public class AuthController {
         loginAttempts.recordSuccess(emailKey);
         return response(u);
     }
-    @GetMapping("/mobile-oauth/{provider}") void mobileOauth(@PathVariable String provider,HttpSession session,HttpServletResponse response)throws IOException{
+    /**
+     * 소셜 로그인 시작점. 웹과 앱 모두 이 주소로 들어와야 한다.
+     * challenge 는 클라이언트가 만든 verifier 의 SHA-256 값이며, 로그인이 끝나면 일회용 코드가 여기에 묶인다.
+     */
+    @GetMapping("/oauth/{provider}") void startOauth(@PathVariable String provider,@RequestParam String challenge,@RequestParam(defaultValue="web") String client,HttpSession session,HttpServletResponse response)throws IOException{
         if(!provider.equals("google")&&!provider.equals("kakao"))throw new ApiException(HttpStatus.NOT_FOUND,"지원하지 않는 소셜 로그인입니다.");
-        session.setAttribute("mobile_oauth",true);response.sendRedirect("/oauth2/authorization/"+provider);
+        if(!OAuthLoginCodes.isValidChallenge(challenge))throw new ApiException(HttpStatus.BAD_REQUEST,"로그인 요청이 올바르지 않습니다.");
+        OAuthStart.save(session,challenge,client.equals("mobile"));response.sendRedirect("/oauth2/authorization/"+provider);
+    }
+    @PostMapping("/oauth/exchange") Map<String,Object> exchangeOauth(@Valid @RequestBody OAuthExchange body){
+        Long userId=loginCodes.redeem(body.code(),body.verifier()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"로그인 링크가 만료되었거나 올바르지 않아요. 다시 로그인해주세요."));
+        return response(users.findById(userId).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"계정을 찾을 수 없습니다.")));
     }
     @GetMapping("/me") Map<String,Object> me(Authentication auth){return user(ensureFriendCode(ApiSupport.user(auth)));}
     @PatchMapping("/me") Map<String,Object> updateMe(Authentication auth,@Valid @RequestBody ProfileUpdate body){
@@ -71,5 +83,7 @@ public class AuthController {
     }
     private Map<String,Object> response(User u){u=ensureFriendCode(u);return Map.of("token",jwt.create(u.getId()),"user",user(u));}
     private User ensureFriendCode(User u){if(u.getFriendCode()==null||u.getFriendCode().isBlank()){u.setFriendCode(User.createFriendCode());return users.save(u);}return u;}
+    /** 다른 사람에게 보이는 최소 정보. 이메일·친구 코드는 담지 않는다(공개 일정 API 는 로그인 없이 열려 있다). */
+    static Map<String,Object> publicUser(User u){Map<String,Object> out=new java.util.LinkedHashMap<>();out.put("id",u.getId());out.put("name",u.getName());out.put("avatarUrl",u.getAvatarUrl()==null?"":u.getAvatarUrl());return out;}
     static Map<String,Object> user(User u){Map<String,Object> out=new java.util.LinkedHashMap<>();out.put("id",u.getId());out.put("email",u.getEmail().endsWith("@oauth.toogeduler.local")?"카카오 계정":u.getEmail());out.put("name",u.getName());out.put("avatarUrl",u.getAvatarUrl()==null?"":u.getAvatarUrl());out.put("friendCode",u.getFriendCode()==null?"":u.getFriendCode());out.put("provider",u.getProvider());out.put("createdAt",u.getCreatedAt());return out;}
 }
