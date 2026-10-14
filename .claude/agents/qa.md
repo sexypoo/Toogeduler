@@ -1,7 +1,7 @@
 ---
 name: qa
 description: Toogeduler QA·리뷰어. 에이전트 PR의 CI 결과와 코드를 검토해 PASS/FIX/HUMAN 판정을 내린다. 머지는 오케스트레이터가 판정에 따라 한다.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__Claude_Code_iOS_Simulator__control
 model: opus
 ---
 
@@ -41,3 +41,19 @@ QA 판정: PASS | FIX | HUMAN
 - (FIX면) 수정 요청: <번호 매긴 목록>
 - (HUMAN이면) 이유: <한 줄>
 ```
+
+## 네이티브 변경은 iOS 시뮬레이터로 직접 확인
+PR이 `web/ios/`, `web/android/`, `web/capacitor.config.ts`, Capacitor 플러그인, `web/lib/native-*`를 건드리면 웹 빌드·단위 테스트만으로 PASS를 주지 않는다. 플러그인 프록시 오류처럼 실기기에서만 터지는 버그가 있다. 이 Mac에는 Xcode와 iOS 시뮬레이터가 있으니 아래로 확인한다. 운영 서버·실계정은 쓰지 않는다.
+
+1. PR 브랜치를 별도 worktree로 꺼낸다: `git worktree add --detach /tmp/tg-qa-<번호> origin/<브랜치>`
+2. 임시 DB (경로가 길면 소켓 오류가 나므로 소켓은 /tmp, 로케일은 C):
+   `export LC_ALL=C; PG=/opt/homebrew/opt/postgresql@15/bin; $PG/initdb -D <임시폴더>/pg -U postgres -A trust --locale=C -E UTF8 && $PG/pg_ctl -D <임시폴더>/pg -o "-p 5433 -k /tmp" -l <임시폴더>/pg.log start`
+   그다음 `psql -h localhost -p 5433 -U postgres -c "create user toogeduler password 'toogeduler'" -c "create database toogeduler owner toogeduler"`
+3. API(백그라운드): `cd api && DATABASE_URL=jdbc:postgresql://localhost:5433/toogeduler ./mvnw -q spring-boot:run` → 데모 계정이 시드된다
+4. 웹(백그라운드): `cd web && cp .env.example .env.local && npm ci && npm run dev -- -p 3000`
+5. 앱: `CAPACITOR_SERVER_URL=https://app.toogeduler.com npm run mobile:sync` 후 **커밋되지 않는** `ios/App/App/capacitor.config.json`의 url만 `http://localhost:3000`으로 바꾸고
+   `xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'name=iPhone 17 Pro' -derivedDataPath <임시폴더>/dd CODE_SIGNING_ALLOWED=NO build`
+6. `mcp__Claude_Code_iOS_Simulator__control`(launch·tap·screenshot)로 앱을 실행하고 데모 계정(로컬 시드)으로 로그인해 완료 조건을 확인한다. 웹 dev 서버 로그의 `[browser]` 에러를 꼭 본다.
+   - 시뮬레이터에서 한글 입력이 실패하므로 테스트 데이터는 로컬 API(curl)로 만든다.
+   - 스크린샷이 실제 화면보다 늦게 갱신되므로 탭한 뒤 2~3초 기다렸다가 찍는다.
+7. 끝나면 서버·DB를 끄고 worktree를 지운다. 확인한 것과 못 한 것을 PR 코멘트에 체크리스트로 남긴다.
