@@ -25,6 +25,15 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     // 원격 사이트 로딩 실패 시 흰 화면 대신 번들된 안내 페이지를 보여줍니다.
     errorPath: 'error.html'
+  },
+  plugins: {
+    // 일정 알림(로컬 알림). Android 상태 표시줄 아이콘은 앱 아이콘을 단색으로 옮긴 벡터, 강조색은 --teal-strong 입니다.
+    // 앱이 앞에 있을 때도 iOS 배너를 띄우되 배지 숫자는 쓰지 않습니다.
+    LocalNotifications: {
+      smallIcon: 'ic_stat_toogeduler',
+      iconColor: '#0b7f7b',
+      presentationOptions: ['sound', 'banner', 'list']
+    }
   }
 };
 
