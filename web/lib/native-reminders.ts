@@ -11,11 +11,12 @@ import type {CalendarEvent} from "@/lib/types";
 
 // 권한은 알림이 있는 일정을 처음 저장할 때 한 번만 묻습니다. 거부해도 다시 묻지 않습니다.
 const ASKED_KEY="toogeduler_reminder_permission_asked";
-let plugin:Promise<LocalNotificationsPlugin>|null=null;
+// 플러그인 프록시는 모든 속성을 네이티브 호출로 바꾸므로 Promise 결과로 바로 넘기면 .then()을 불러 iOS에서 실패한다. 모듈째 들고 있다가 꺼내 쓴다.
+let plugin:Promise<{LocalNotifications:LocalNotificationsPlugin}>|null=null;
 let queue:Promise<unknown>=Promise.resolve();
 
 function native(){return Capacitor.isNativePlatform()}
-function notifications(){return plugin??=import("@capacitor/local-notifications").then(m=>m.LocalNotifications)}
+function notifications(){return plugin??=import("@capacitor/local-notifications")}
 // 지우고 다시 예약하는 작업이 겹치면 순서가 섞이므로 한 줄로 세워 실행합니다.
 function serial(task:()=>Promise<void>){const next=queue.then(task).catch(e=>console.error("[reminders]",e));queue=next;return next}
 async function cancelPending(ln:LocalNotificationsPlugin){const {notifications:pending}=await ln.getPending();if(pending.length)await ln.cancel({notifications:pending.map(n=>({id:n.id}))})}
@@ -25,7 +26,7 @@ async function cancelPending(ln:LocalNotificationsPlugin){const {notifications:p
 export function syncReminders(meId:number){
  if(!native())return Promise.resolve();
  return serial(async()=>{
-  const ln=await notifications();await cancelPending(ln);
+  const ln=(await notifications()).LocalNotifications;await cancelPending(ln);
   if((await ln.checkPermissions()).display!=="granted")return;
   const now=new Date();const to=new Date(now.getTime()+REMINDER_HORIZON_DAYS*86400000);
   const events=await api<CalendarEvent[]>(`/api/events?from=${now.toISOString()}&to=${to.toISOString()}`);
@@ -37,14 +38,14 @@ export function syncReminders(meId:number){
 // 로그아웃·계정 삭제 때 이 기기에 예약된 알림을 모두 지웁니다.
 export function cancelAllReminders(){
  if(!native())return Promise.resolve();
- return serial(async()=>cancelPending(await notifications()));
+ return serial(async()=>cancelPending((await notifications()).LocalNotifications));
 }
 
 // 알림이 있는 일정을 저장한 직후 부릅니다. "denied" 는 이번에 처음 거부를 확인한 경우에만 돌려주므로 안내는 한 번만 나갑니다.
 export async function askReminderPermissionOnce():Promise<"granted"|"denied"|"skipped">{
  if(!native())return "skipped";
  try{
-  const ln=await notifications();const {display}=await ln.checkPermissions();
+  const ln=(await notifications()).LocalNotifications;const {display}=await ln.checkPermissions();
   if(display==="granted")return "granted";
   if(localStorage.getItem(ASKED_KEY))return "skipped";
   localStorage.setItem(ASKED_KEY,"1");
@@ -56,7 +57,7 @@ export async function askReminderPermissionOnce():Promise<"granted"|"denied"|"sk
 // 권한을 한 번 물었는데 허용되지 않은 상태인지(=일정 모달에 안내 문구를 보여야 하는지) 확인합니다.
 export async function remindersBlocked(){
  if(!native())return false;
- try{const {display}=await (await notifications()).checkPermissions();return display==="denied"||(display!=="granted"&&Boolean(localStorage.getItem(ASKED_KEY)))}
+ try{const {display}=await (await notifications()).LocalNotifications.checkPermissions();return display==="denied"||(display!=="granted"&&Boolean(localStorage.getItem(ASKED_KEY)))}
  catch(e){console.error("[reminders] 권한 확인 실패",e);return false}
 }
 
@@ -70,6 +71,6 @@ export function onAppForeground(callback:()=>void){
 // 예약 알림을 탭하면 담아 둔 일정 링크(/?event=ID&at=회차시작)를 엽니다.
 export function onReminderTap(open:(link:string)=>void){
  if(!native())return ()=>{};
- const listener=notifications().then(ln=>ln.addListener("localNotificationActionPerformed",({notification})=>{const link=notification.extra?.link;if(typeof link==="string"&&link.startsWith("/?event="))open(link)}));
+ const listener=notifications().then(m=>m.LocalNotifications.addListener("localNotificationActionPerformed",({notification})=>{const link=notification.extra?.link;if(typeof link==="string"&&link.startsWith("/?event="))open(link)}));
  return ()=>{listener.then(handle=>handle.remove()).catch(()=>{})};
 }
