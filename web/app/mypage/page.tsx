@@ -4,17 +4,19 @@ import {useEffect,useState} from "react";
 import {useRouter} from "next/navigation";
 import {AlertTriangle,ArrowLeft,CalendarDays,Camera,Check,Copy,LogOut,Mail,ShieldCheck,Trash2,UserRound,UsersRound} from "lucide-react";
 import {api,token,ApiError} from "@/lib/api";
+import {cancelAllReminders} from "@/lib/native-reminders";
 import type {User,UserStats} from "@/lib/types";
 
 export default function MyPage(){
  const router=useRouter();const[loadError,setLoadError]=useState("");const[user,setUser]=useState<User|null>(null);const[stats,setStats]=useState<UserStats|null>(null);const[name,setName]=useState("");const[avatarUrl,setAvatarUrl]=useState("");const[error,setError]=useState("");const[saved,setSaved]=useState(false);const[loading,setLoading]=useState(false);const[confirmDelete,setConfirmDelete]=useState(false);const[deletePassword,setDeletePassword]=useState("");const[deleteError,setDeleteError]=useState("");const[deleting,setDeleting]=useState(false);
  useEffect(()=>{if(!token()){router.replace("/login");return}api<User>("/api/auth/me").then(u=>{setUser(u);setName(u.name);setAvatarUrl(u.avatarUrl||"");api<UserStats>("/api/auth/me/stats").then(setStats).catch(()=>setStats({eventCount:0,groupCount:0,friendCount:0}))}).catch(e=>{if(e instanceof ApiError&&e.status===401){localStorage.removeItem("toogeduler_token");router.replace("/login")}else setLoadError(e instanceof ApiError?e.message:"서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.")})},[router]);
  async function save(e:React.FormEvent){e.preventDefault();setLoading(true);setError("");try{const updated=await api<User>("/api/auth/me",{method:"PATCH",body:JSON.stringify({name,avatarUrl})});setUser(updated);setSaved(true);setTimeout(()=>setSaved(false),1800)}catch(e){setError(e instanceof Error?e.message:"프로필을 저장하지 못했습니다.")}finally{setLoading(false)}}
- function logout(){localStorage.removeItem("toogeduler_token");router.push("/login")}
+ function logout(){cancelAllReminders();localStorage.removeItem("toogeduler_token");router.push("/login")}
  async function deleteAccount(e:React.FormEvent){
   e.preventDefault();setDeleting(true);setDeleteError("");
   try{
    await api("/api/auth/me",{method:"DELETE",body:JSON.stringify({password:deletePassword})});
+   cancelAllReminders();
    localStorage.removeItem("toogeduler_token");
    router.replace("/login?deleted=1");
   }catch(err){setDeleteError(err instanceof Error?err.message:"계정을 삭제하지 못했습니다.")}

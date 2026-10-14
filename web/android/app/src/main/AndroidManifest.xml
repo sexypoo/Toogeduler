@@ -44,4 +44,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ 에서 일정 알림(로컬 알림)을 띄우려면 필요합니다. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
