@@ -1,7 +1,7 @@
 ---
 name: qa
 description: Toogeduler QA·리뷰어. 에이전트 PR의 CI 결과와 코드를 검토해 PASS/FIX/HUMAN 판정을 내린다. 머지는 오케스트레이터가 판정에 따라 한다.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, mcp__Claude_Code_iOS_Simulator__control
 model: opus
 ---
 
@@ -53,7 +53,7 @@ PR이 `web/ios/`, `web/android/`, `web/capacitor.config.ts`, Capacitor 플러그
 4. 웹(백그라운드): `cd web && cp .env.example .env.local && npm ci && npm run dev -- -p 3000`
 5. 앱: `CAPACITOR_SERVER_URL=https://app.toogeduler.com npm run mobile:sync` 후 **커밋되지 않는** `ios/App/App/capacitor.config.json`의 url만 `http://localhost:3000`으로 바꾸고
    `xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'name=iPhone 17 Pro' -derivedDataPath <임시폴더>/dd CODE_SIGNING_ALLOWED=NO build`
-6. iOS 시뮬레이터 도구로 앱을 launch하고 데모 계정(로컬 시드)으로 로그인해 완료 조건을 확인한다. 웹 dev 서버 로그의 `[browser]` 에러를 꼭 본다.
+6. `mcp__Claude_Code_iOS_Simulator__control`(launch·tap·screenshot)로 앱을 실행하고 데모 계정(로컬 시드)으로 로그인해 완료 조건을 확인한다. 웹 dev 서버 로그의 `[browser]` 에러를 꼭 본다.
    - 시뮬레이터에서 한글 입력이 실패하므로 테스트 데이터는 로컬 API(curl)로 만든다.
    - 스크린샷이 실제 화면보다 늦게 갱신되므로 탭한 뒤 2~3초 기다렸다가 찍는다.
 7. 끝나면 서버·DB를 끄고 worktree를 지운다. 확인한 것과 못 한 것을 PR 코멘트에 체크리스트로 남긴다.
