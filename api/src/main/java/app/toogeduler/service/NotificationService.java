@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -51,7 +52,8 @@ public class NotificationService {
     public void announceGroupEvent(Event event){
         User owner=event.getOwner();String when=event.getStartAt().atZoneSameInstant(SEOUL).format(WHEN);
         Set<Long> notified=new HashSet<>();notified.add(owner.getId());
-        for(Group group:event.getGroups())for(GroupMember member:members.findByGroupId(group.getId())){
+        // 여러 그룹에 함께 있는 사람은 가장 먼저 만든 그룹 이름으로 한 번만 받는다. Set 순회 순서에 맡기면 문구가 실행마다 달라진다.
+        for(Group group:event.getGroups().stream().sorted(Comparator.comparing(Group::getId)).toList())for(GroupMember member:members.findByGroupId(group.getId())){
             User user=member.getUser();if(!notified.add(user.getId()))continue;
             notify(user,Notification.Type.GROUP_EVENT,"새 그룹 일정이 잡혔어요",owner.getName()+"님이 "+group.getName()+"에 "+when+" '"+event.getTitle()+"' 일정을 잡았어요.","/?group="+group.getId()+"&at="+event.getStartAt().toInstant(),"group-event:"+event.getId()+":"+user.getId());
         }
