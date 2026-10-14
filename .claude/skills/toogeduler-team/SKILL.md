@@ -1,6 +1,6 @@
 ---
 name: toogeduler-team
-description: Toogeduler 에이전트 팀(기획 · 디자인 · 개발 · QA)을 한 사이클 돌린다. 백로그에서 이슈 하나를 골라 구현 → 검증 → 조건을 만족하면 자동 머지하고 슬랙 #업무-보고에 보고한다. 예약 작업이 주 3회 호출하며, 사용자가 /toogeduler-team 으로 직접 돌릴 수도 있다. 인자로 "plan"을 주면 기획만, 이슈 번호를 주면 그 이슈를 처리한다.
+description: Toogeduler 에이전트 팀(기획 · 디자인 · 개발 · QA)을 한 사이클 돌린다. 백로그에서 이슈 하나를 골라 구현 → 검증 → 조건을 만족하면 자동 머지하고 슬랙 #toogeduler-team에 보고한다. 예약 작업이 주 3회 호출하며, 사용자가 /toogeduler-team 으로 직접 돌릴 수도 있다. 인자로 "plan"을 주면 기획만, 이슈 번호를 주면 그 이슈를 처리한다.
 ---
 
 # Toogeduler 팀 사이클
@@ -10,7 +10,7 @@ description: Toogeduler 에이전트 팀(기획 · 디자인 · 개발 · QA)을
 ## 상수
 - 작업 디렉터리: `/Users/goeun/Documents/Toogeduler-agent` (사용자 작업 폴더와 분리된 git worktree). 없으면
   `git -C /Users/goeun/Documents/Toogeduler worktree add --detach /Users/goeun/Documents/Toogeduler-agent origin/main`
-- 슬랙 채널: `#업무-보고` = `C0C8MU3GFFD`
+- 슬랙 채널: `#toogeduler-team` = `C0C90NT3STU`
 - 운영 상태 확인: `https://app.toogeduler.com/backend/actuator/health` (`"UP"`), `https://app.toogeduler.com` (200)
 - 서브에이전트: `.claude/agents/`의 `pm`, `designer`, `developer`, `qa`. 각 호출에 작업 디렉터리 절대경로를 넘긴다. 서브에이전트는 포그라운드로(결과를 기다려서) 호출한다.
 
