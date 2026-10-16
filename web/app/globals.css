@@ -466,3 +466,11 @@ button.social{border:0;cursor:pointer;font-family:inherit;font-size:13.5px;font-
 .toast.notice{white-space:normal;width:max-content;max-width:calc(100% - 32px);line-height:1.45}
 .toast.notice svg{flex:none}
 @media(max-width:760px){.event-modal select{min-height:44px}}
+/* 초대 링크 미리보기 (#19): 기존 .group-preview 를 카드 가운데에 두고, 긴 그룹 이름은 말줄임 없이 줄바꿈한다. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.invite-card .group-preview.invite-group{height:auto;width:100%;margin:20px auto;text-align:left;align-items:center}
+.invite-group>i{flex:none}.invite-group>span{min-width:0}
+.invite-card .invite-group h1{margin:0 0 4px;overflow-wrap:anywhere}
+.invite-group .invite-owner{font-size:13px;color:#5d6e7e}.invite-card .invite-group small{color:#5d6e7e}
+.invite-card .primary.full{height:48px}.invite-card .social{min-height:44px}.invite-card .switch-auth{min-height:44px;margin-top:8px}.invite-card .form-error{text-align:left}
+@media(max-width:340px){.invite-card .social-row{grid-template-columns:1fr}}
