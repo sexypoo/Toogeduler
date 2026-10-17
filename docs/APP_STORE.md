@@ -6,16 +6,19 @@
 
 ## 0. 지금 남아 있는 필수 작업
 
-코드 쪽 심사 차단 요소는 정리했지만, 아래는 사람이 직접 해야 합니다.
+> **보류 중 (2026-10-17)**: Apple Developer Program 가입(연 $99)은 비용 때문에 미루고, 웹(`app.toogeduler.com`)을 먼저 정식 출시합니다. 이 문서는 스토어 출시를 다시 시작할 때 그대로 따라 하면 됩니다. Google Play는 등록비가 $25(1회)라 먼저 시작할 수도 있습니다(8절).
 
-| # | 작업 | 비용/기간 |
-|---|---|---|
-| 1 | Apple Developer Program 가입 | 연 $99 (원화 환산 결제) / 승인 1~2일 (가끔 1주) |
-| 2 | **`api.` 서브도메인을 Railway 에 연결** (웹은 이미 연결 완료) | 30분 + 인증서 발급 대기 |
-| 3 | Google·Kakao OAuth 운영 키 등록 및 검증 | 무료 / 1~2시간 |
-| 4 | 개인정보처리방침 이메일 주소를 실제 주소로 변경 | — |
-| 5 | 스크린샷 촬영 (iPhone 6.9") | 1~2시간 |
-| 6 | Xcode에서 Signing Team 선택 | 5분 |
+코드 쪽 심사 차단 요소는 정리했고, 도메인·소셜 로그인 연결도 끝났습니다. 아래는 사람이 직접 해야 합니다.
+
+| # | 작업 | 비용/기간 | 상태 |
+|---|---|---|---|
+| 1 | Apple Developer Program 가입 (#22) | 연 $99 / 승인 1~2일 (가끔 1주) | 보류 |
+| 2 | Google Play 개발자 계정 + 비공개 테스트 12명·14일 (#23) | $25 1회 / 최소 2주 | 대기 |
+| 3 | 심사용 데모 계정 채우기, 지원 메일 수신 확인 (#24) | — | 대기 |
+| 4 | Google·Kakao 실제 계정으로 로그인 확인 | 10분 | 대기 (운영 키 연결은 완료) |
+| 5 | 노출 이력 있는 OAuth 시크릿 교체 (#26) | 30분 | 대기 |
+| 6 | 스크린샷 촬영 (iPhone 6.9") | 1~2시간 | 스토어 출시 때 |
+| 7 | Xcode에서 Signing Team 선택 | 5분 | Apple 가입 후 |
 
 ---
 
@@ -36,19 +39,22 @@
 
 ## 2. 도메인과 서비스 연결
 
-### 현재 상태 (2026-09-08 실제 확인)
+### 현재 상태 (2026-10-17 확인)
 
 | 호스트 | 상태 |
 |---|---|
 | `toogeduler.com` | 정상 |
-| `app.toogeduler.com` | 정상 — 로그인 화면까지 확인 |
-| `toogeduler.vercel.app` | 정상 |
-| `app.toogeduler.com/backend/actuator/health` | `{"status":"UP"}` — Vercel → Railway 프록시 정상 |
-| **`api.toogeduler.com`** | **접속 불가** — TCP 443 은 열려 있으나 HTTPS 인증서가 이 호스트 이름과 맞지 않아 브라우저가 로드를 거부합니다 |
+| `app.toogeduler.com` | 정상 |
+| `app.toogeduler.com/backend/actuator/health` | `{"status":"UP"}`, Vercel → Railway 프록시 정상 |
+| `api.toogeduler.com/actuator/health` | `{"status":"UP"}`, HTTPS 인증서 정상 |
+| `api.toogeduler.com/oauth2/authorization/google` | Google 로그인 화면으로 302 이동, 운영 OAuth 키 연결됨 |
 
-웹은 이미 연결이 끝났습니다. 남은 문제는 `api.` 서브도메인 하나입니다.
+웹·API 도메인과 소셜 로그인 연결이 모두 끝났습니다.
 
-### `api.toogeduler.com` 문제 진단
+<details>
+<summary>과거 문제 해결 기록</summary>
+
+#### `api.toogeduler.com` 접속 불가 (해결됨)
 
 `api.toogeduler.com` 이 `69.46.46.121` 로 해석되는데, 이 주소는 Vercel(`216.198.79.1`)도 Railway 도 아닙니다. 무언가가 443 포트에서 응답하지만 이 도메인용 인증서가 없는 상태입니다. 원인은 보통 둘 중 하나입니다.
 
@@ -68,15 +74,15 @@ curl https://api.toogeduler.com/actuator/health   # {"status":"UP"}
 
 > `/backend` 프록시로도 API 가 동작하므로 일정 조회·저장 같은 일반 기능은 지금도 정상입니다. 하지만 **소셜 로그인은 `api.` 도메인이 반드시 필요합니다.** OAuth 는 세션 쿠키를 API 자신의 출처에 심어야 하는데, 프록시를 통하면 쿠키가 웹 도메인에 붙어 Kakao·Google 이 돌려보낼 때 세션이 사라집니다.
 
-### 임시 대안
+#### 임시 대안 (당시)
 
 `api.` 연결을 기다리는 동안, Railway 가 기본으로 발급한 도메인(`*.up.railway.app`)을 그대로 쓸 수 있습니다. Vercel 에 `NEXT_PUBLIC_OAUTH_URL=https://<railway-도메인>` 을 넣고, Railway 의 `OAUTH_REDIRECT_BASE_URL` 과 Google·Kakao 의 redirect URI 도 같은 도메인으로 맞추면 소셜 로그인이 바로 동작합니다. 나중에 `api.` 로 옮길 때 세 곳을 함께 바꾸면 됩니다.
 
-### 환경변수 (지금 반드시 설정해야 하는 것)
+</details>
 
-`NEXT_PUBLIC_OAUTH_URL` 이 Vercel 에 **설정되어 있지 않습니다.** 확인 결과 현재 배포된 로그인 화면의 소셜 버튼은 접속 불가 상태인 `https://api.toogeduler.com/oauth2/authorization/...` 을 가리키고 있어, 누르면 오류 화면으로 갑니다.
+### 환경변수
 
-이번 수정으로 이 하드코딩 기본값을 제거했으므로, **다음 배포부터는 `NEXT_PUBLIC_OAUTH_URL` 이 없으면 소셜 로그인 버튼 자체가 표시되지 않습니다.** 죽은 링크를 사용자에게 보여주지 않기 위한 의도된 동작입니다. 반드시 설정하세요.
+운영에는 아래 값이 설정되어 있어야 합니다. `NEXT_PUBLIC_OAUTH_URL` 이 없으면 소셜 로그인 버튼이 아예 표시되지 않습니다(죽은 링크를 보여주지 않기 위한 의도된 동작). 2026-10-14에 소셜 버튼이 `https://api.toogeduler.com`을 가리키는 것을 확인했습니다.
 
 | 위치 | 변수 | 값 |
 |---|---|---|
@@ -279,8 +285,8 @@ Resolution Center에 반송 사유가 옵니다. 코드 수정이 필요 없는 
 
 | ID | 내용 | 이유 |
 |---|---|---|
-| DB-001 | Flyway 마이그레이션 | 현재 `ddl-auto: update`는 컬럼 삭제·타입 변경을 반영하지 않고, 운영 스키마가 예측 불가능해집니다 |
-| DB-002 | DB 백업·복원 리허설 | 사용자 데이터가 들어오면 복구 수단이 없습니다 |
+| DB-001 | Flyway 마이그레이션 (#17) | 현재 `ddl-auto: update`는 컬럼 삭제·타입 변경을 반영하지 않고, 운영 스키마가 예측 불가능해집니다 |
+| DB-002 | DB 백업·복원 리허설 (#25) | 사용자 데이터가 들어오면 복구 수단이 없습니다 |
 | SEC-011 | JWT를 HttpOnly Secure 쿠키로 전환 | 현재 토큰이 localStorage에 있고 OAuth 콜백 시 URL 쿼리로 한 번 노출됩니다 |
-| SEC-013 | 초대 링크 만료·재발급 | 한 번 유출된 링크가 영구히 유효합니다 |
-| INFRA-002 | OAuth 키 회전 | 이전에 노출된 적이 있는 키는 교체하세요 |
+| SEC-013 | 초대 링크 만료·재발급 (#21) | 한 번 유출된 링크가 영구히 유효합니다 |
+| INFRA-002 | OAuth 키 회전 (#26) | 이전에 노출된 적이 있는 키는 교체하세요 |
