@@ -37,17 +37,31 @@ export function weekHourRange(events:{startAt:string;endAt:string;allDay:boolean
 }
 
 // 같은 날 겹치는 일정을 시간표처럼 나란히 놓을 열을 정한다. 서로 이어서 겹치는 일정 묶음마다 필요한 열 수를 세고,
-// 각 일정은 비어 있는 가장 왼쪽 열에 들어간다. 반환: 일정 순서대로 {col, cols}.
+// 각 일정은 비어 있는 가장 왼쪽 열에 들어간다. 반환: 일정 순서대로 {col, cols, cluster}. cluster는 겹침 묶음 번호.
 export function sideBySide(items:{startAt:string;endAt:string}[]){
  const order=items.map((e,i)=>({i,s:new Date(e.startAt).getTime(),e:new Date(e.endAt).getTime()})).sort((a,b)=>a.s-b.s||b.e-a.e);
- const result:{col:number;cols:number}[]=items.map(()=>({col:0,cols:1}));
- let cluster:typeof order=[],colEnds:number[]=[],clusterEnd=-Infinity;
- const close=()=>{for(const x of cluster)result[x.i].cols=colEnds.length;cluster=[];colEnds=[]};
+ const result:{col:number;cols:number;cluster:number}[]=items.map(()=>({col:0,cols:1,cluster:0}));
+ let cluster:typeof order=[],colEnds:number[]=[],clusterEnd=-Infinity,clusterNo=-1;
+ const close=()=>{for(const x of cluster)result[x.i].cols=colEnds.length;cluster=[];colEnds=[];clusterNo++};
  for(const x of order){
   if(x.s>=clusterEnd)close();
   let col=colEnds.findIndex(end=>end<=x.s);if(col<0){col=colEnds.length;colEnds.push(x.e)}else colEnds[col]=x.e;
-  result[x.i].col=col;cluster.push(x);clusterEnd=Math.max(clusterEnd,x.e);
+  result[x.i].col=col;result[x.i].cluster=clusterNo;cluster.push(x);clusterEnd=Math.max(clusterEnd,x.e);
  }
  close();
  return result;
+}
+
+// 한 묶음이 max열을 넘으면 앞의 max-1열만 그대로 그리고, 나머지는 마지막 열의 "+N" 하나로 접는다.
+// 8명이 같은 시간에 일정을 넣어도 한 열이 읽을 수 없을 만큼 좁아지지 않게 한다.
+export function capLanes(lanes:{col:number;cols:number;cluster:number}[],max=3){
+ return lanes.map(l=>l.cols<=max?{...l,hidden:false}:{...l,cols:max,hidden:l.col>=max-1});
+}
+
+// "함께 되는 시간"에서 먼저 보여줄 구간: 되는 사람이 가장 많은 구간, 같으면 더 이른 구간.
+// 큰 그룹은 모두 되는 시간이 없을 때가 많아서, 그때 가장 이른 아무 구간(3명만 되는 시간)을 내세우지 않게 한다.
+export function bestBlock<T extends {startAt:string;availableCount:number}>(blocks:T[]):T|null{
+ let best:T|null=null;
+ for(const b of blocks)if(!best||b.availableCount>best.availableCount||(b.availableCount===best.availableCount&&b.startAt<best.startAt))best=b;
+ return best;
 }

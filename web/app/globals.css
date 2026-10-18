@@ -143,3 +143,16 @@
 .week-calendar .event-block small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .people-strip p{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .people-strip button,.people-strip a{flex:none;white-space:nowrap}
+/* 겹친 일정이 3열을 넘으면 마지막 열은 "+N" 칩. 누르면 접힌 일정 목록 */
+.lane-more{position:absolute;left:calc(200% / 3 + 2px);width:calc(100% / 3 - 4px);z-index:3}
+.lane-more-chip{width:100%;height:100%;min-height:28px;border:1px dashed var(--faint);border-radius:5px;background:#fff;color:var(--ink);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.lane-more-chip:hover,.lane-more-chip[aria-expanded=true]{background:var(--line-soft);border-style:solid}
+.lane-more-list{position:absolute;top:0;right:0;width:220px;max-height:320px;overflow-y:auto;padding:6px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-overlay);z-index:20}
+.lane-more-list button{width:100%;display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px;border:0;border-radius:6px;background:none;text-align:left;font:inherit;cursor:pointer}
+.lane-more-list button:hover,.lane-more-list button:focus-visible{background:var(--line-soft)}
+.lane-more-list i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.lane-more-list span{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-more-list small{font-size:11.5px;color:var(--muted);white-space:nowrap}
+@media(max-width:600px){.lane-more-chip{font-size:10px;min-height:22px}.lane-more-list{width:200px}}
+/* 모두 되는 시간이 없을 때: 가장 많이 되는 구간을 겹침색으로 강조 */
+.seg.top,.map-legend i.top{background:color-mix(in srgb,var(--overlap) 72%,transparent)}
