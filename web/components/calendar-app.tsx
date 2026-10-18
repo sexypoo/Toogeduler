@@ -9,7 +9,7 @@ import {ko} from "date-fns/locale";
 import {Bell,BellOff,BellRing,CalendarDays,CalendarPlus,Check,ChevronDown,ChevronLeft,ChevronRight,Clock3,Copy,Globe2,Grid2X2,Link2,LogOut,Menu,MoreHorizontal,Plus,Sparkles,Trash2,UserPlus,UserRound,UsersRound,X} from "lucide-react";
 import {api,ApiError} from "@/lib/api";
 import {bestBlock,blockPosition,capLanes,overlapsDay,shiftSeries,sideBySide,weekHourRange} from "@/lib/time";
-import {clockMinutes,seoulClock,seoulDays,seoulLabel} from "@/lib/seoul-time";
+import {calendarDays,clockMinutes,viewerZone,zonedClock,zonedLabel} from "@/lib/zoned-time";
 import {askReminderPermissionOnce,cancelAllReminders,onAppForeground,remindersBlocked,syncReminders} from "@/lib/native-reminders";
 import type {AppNotification,CalendarEvent,Group,Slot,User,Visibility} from "@/lib/types";
 
@@ -119,15 +119,15 @@ function EventModal({value,groups,me,remindersOff,onClose,onSave,onDelete,show}:
 
 // 함께 되는 시간: 기간 전체를 날짜 × 시간 지도로 보여줍니다. 모두 되는 구간은 앱 아이콘의 겹침 색으로, 일부만 되는 구간은 되는 사람이 많을수록 진하게 칠합니다.
 function AvailabilityPanel({group,close,show,onPick}:{group:Group;close:()=>void;show:(m:string)=>void;onPick:(slot:Slot)=>void}){
- const dialog=useDialog<HTMLElement>(close);const today=new Date();
+ const dialog=useDialog<HTMLElement>(close);const today=new Date();const zone=useMemo(viewerZone,[]);
  const[from,setFrom]=useState(fmtDate(today));const[to,setTo]=useState(fmtDate(addDays(today,14)));const[start,setStart]=useState("09:00");const[end,setEnd]=useState("22:00");const[minutes,setMinutes]=useState(60);
  const[blocks,setBlocks]=useState<Slot[]>([]);const[searched,setSearched]=useState({from,to,start,end,minutes});const[picked,setPicked]=useState<Slot|null>(null);const pickedRef=useRef<HTMLElement>(null);const[loading,setLoading]=useState(false);
- async function search(){setLoading(true);try{const found:Slot[]=await api(`/api/groups/${group.id}/availability/blocks?from=${from}&to=${to}&dayStart=${start}&dayEnd=${end}&minMinutes=${minutes}&timeZone=Asia/Seoul`);setBlocks(found);setSearched({from,to,start,end,minutes});setPicked(bestBlock(found))}catch(e){show(e instanceof Error?e.message:"시간을 찾지 못했습니다.")}finally{setLoading(false)}}
+ async function search(){setLoading(true);try{const found:Slot[]=await api(`/api/groups/${group.id}/availability/blocks?from=${from}&to=${to}&dayStart=${start}&dayEnd=${end}&minMinutes=${minutes}&timeZone=${encodeURIComponent(zone)}`);setBlocks(found);setSearched({from,to,start,end,minutes});setPicked(bestBlock(found))}catch(e){show(e instanceof Error?e.message:"시간을 찾지 못했습니다.")}finally{setLoading(false)}}
  useEffect(()=>{search()},[]);
  const best=bestBlock(blocks);const dayStart=clockMinutes(searched.start),span=clockMinutes(searched.end)-dayStart;
- const byDay=useMemo(()=>{const map:Record<string,Slot[]>={};for(const b of blocks)(map[seoulClock(b.startAt).day]??=[]).push(b);return map},[blocks]);
+ const byDay=useMemo(()=>{const map:Record<string,Slot[]>={};for(const b of blocks)(map[zonedClock(b.startAt,zone).day]??=[]).push(b);return map},[blocks]);
  const ticks=Array.from({length:Math.floor(span/180)+1},(_,i)=>dayStart+i*180).filter(m=>m<=dayStart+span);
- const time=(iso:string)=>seoulLabel(iso,{hour:"numeric",minute:"2-digit"});const range=(b:Slot)=>`${time(b.startAt)} – ${time(b.endAt)}`;
+ const time=(iso:string)=>zonedLabel(iso,{hour:"numeric",minute:"2-digit"},zone);const range=(b:Slot)=>`${time(b.startAt)} – ${time(b.endAt)}`;
  const people=(names:string[])=>group.members.filter(m=>names.includes(m.name));
  const book=(b:Slot)=>onPick({...b,endAt:new Date(Math.min(Date.parse(b.startAt)+searched.minutes*60000,Date.parse(b.endAt))).toISOString()});
  // 휴대폰에서는 지도를 내려 본 채로 고르므로, 고른 시간 카드가 화면 밖이면 보이는 곳까지 올려준다.
@@ -140,16 +140,16 @@ function AvailabilityPanel({group,close,show,onPick}:{group:Group;close:()=>void
   <div className="overlap-results">
    {!loading&&blocks.length===0&&<div className="empty-slots"><Clock3/><p>조건에 맞는 시간이 없어요.</p><small>기간을 늘리거나 최소 시간을 줄여보세요.</small></div>}
    {picked&&<section ref={pickedRef} className={picked.everyoneAvailable?"picked all":"picked"} aria-live="polite">
-    <p>{picked===best?(best.everyoneAvailable?"모두 되는 가장 빠른 시간":"가장 많이 되는 시간"):seoulLabel(picked.startAt,{month:"long",day:"numeric",weekday:"long"})}</p>
-    <h3>{picked===best&&<span>{seoulLabel(picked.startAt,{month:"long",day:"numeric",weekday:"short"})} </span>}{range(picked)}</h3>
+    <p>{picked===best?(best.everyoneAvailable?"모두 되는 가장 빠른 시간":"가장 많이 되는 시간"):zonedLabel(picked.startAt,{month:"long",day:"numeric",weekday:"long"},zone)}</p>
+    <h3>{picked===best&&<span>{zonedLabel(picked.startAt,{month:"long",day:"numeric",weekday:"short"},zone)} </span>}{range(picked)}</h3>
     <div className="picked-people"><span className="faces" aria-hidden="true">{people(picked.availablePeople).map(m=><i key={m.id} style={{background:personColor(m.id)}}>{m.name.slice(-1)}</i>)}</span><span>{who(picked)}</span></div>
-    <div className="picked-actions"><button type="button" className="primary" onClick={()=>book(picked)}><CalendarPlus/>이 시간으로 잡기</button><button type="button" className="icon-btn" onClick={()=>{navigator.clipboard.writeText(`${seoulLabel(picked.startAt,{month:"long",day:"numeric",weekday:"short"})} ${range(picked)}`);show("시간을 복사했어요.")}} aria-label="이 시간 복사"><Copy/></button></div>
+    <div className="picked-actions"><button type="button" className="primary" onClick={()=>book(picked)}><CalendarPlus/>이 시간으로 잡기</button><button type="button" className="icon-btn" onClick={()=>{navigator.clipboard.writeText(`${zonedLabel(picked.startAt,{month:"long",day:"numeric",weekday:"short"},zone)} ${range(picked)}`);show("시간을 복사했어요.")}} aria-label="이 시간 복사"><Copy/></button></div>
    </section>}
    {blocks.length>0&&<div className="overlap-map" role="group" aria-label="날짜별로 되는 시간">
     <div className="map-scale" aria-hidden="true"><span/><div>{ticks.map(m=><small key={m} style={{left:`${(m-dayStart)/span*100}%`}}>{Math.floor(m/60)%12||12}{m/60>=12?"pm":"am"}</small>)}</div></div>
-    {seoulDays(searched.from,searched.to).map(({day,noon})=>{const weekday=seoulLabel(noon,{weekday:"short"});return <div className="map-row" key={day}>
+    {calendarDays(searched.from,searched.to).map(({day,noon})=>{const weekday=zonedLabel(noon,{weekday:"short"},"UTC");return <div className="map-row" key={day}>
      <span className={weekday==="일"?"map-day sun":weekday==="토"?"map-day sat":"map-day"}><b>{Number(day.slice(5,7))}.{Number(day.slice(8))}</b>{weekday}</span>
-     <div className="map-track">{(byDay[day]??[]).map(b=>{const s=seoulClock(b.startAt).minutes,e=seoulClock(b.endAt).minutes||24*60;return <button type="button" key={b.startAt} className={`${b.everyoneAvailable?"seg all":!best?.everyoneAvailable&&b.availableCount===best?.availableCount?"seg top":"seg"}${picked===b?" on":""}`} style={{left:`${(s-dayStart)/span*100}%`,width:`${(e-s)/span*100}%`,["--share" as string]:b.availableCount/b.totalCount,["--l" as string]:(s-dayStart)/span,["--w" as string]:(e-s)/span}} aria-pressed={picked===b} aria-label={`${seoulLabel(b.startAt,{month:"long",day:"numeric"})} ${range(b)}, ${who(b)}`} title={`${range(b)}, ${b.totalCount}명 중 ${b.availableCount}명`} onClick={()=>choose(b)}/>})}</div>
+     <div className="map-track">{(byDay[day]??[]).map(b=>{const s=zonedClock(b.startAt,zone).minutes,e=zonedClock(b.endAt,zone).minutes||24*60;return <button type="button" key={b.startAt} className={`${b.everyoneAvailable?"seg all":!best?.everyoneAvailable&&b.availableCount===best?.availableCount?"seg top":"seg"}${picked===b?" on":""}`} style={{left:`${(s-dayStart)/span*100}%`,width:`${(e-s)/span*100}%`,["--share" as string]:b.availableCount/b.totalCount,["--l" as string]:(s-dayStart)/span,["--w" as string]:(e-s)/span}} aria-pressed={picked===b} aria-label={`${zonedLabel(b.startAt,{month:"long",day:"numeric"},zone)} ${range(b)}, ${who(b)}`} title={`${range(b)}, ${b.totalCount}명 중 ${b.availableCount}명`} onClick={()=>choose(b)}/>})}</div>
     </div>})}
     <div className="map-legend">{best?.everyoneAvailable?<span><i className="all"/>모두 돼요</span>:best&&<span><i className="top"/>가장 많이 돼요 ({best.availableCount}명)</span>}<span><i className="some"/>일부만 돼요 (진할수록 많이)</span></div>
    </div>}
