@@ -19,3 +19,35 @@ export function shiftSeries(event:{startAt:string;endAt:string;instanceStart?:st
  const occurrenceStart=new Date(event.instanceStart||event.startAt).getTime();const occurrenceEnd=occurrenceStart+(new Date(event.seriesEndAt).getTime()-new Date(event.seriesStartAt).getTime());
  return {startAt:new Date(new Date(event.seriesStartAt).getTime()+new Date(startAt).getTime()-occurrenceStart).toISOString(),endAt:new Date(new Date(event.seriesEndAt).getTime()+new Date(endAt).getTime()-occurrenceEnd).toISOString()};
 }
+
+// 주간 시간표에 그릴 시간 범위. 기본은 9시–19시이고, 그 주에 더 이르거나 늦은 일정이 있으면 그 시각까지 넓힌다.
+// 자정을 넘기는 일정은 날마다 잘라서 본다(전날 밤 → 0시, 다음 날 새벽 ← 24시).
+export function weekHourRange(events:{startAt:string;endAt:string;allDay:boolean}[],days:Date[],defaultFirst=9,defaultLast=19){
+ let first=defaultFirst,last=defaultLast;
+ for(const e of events){
+  if(e.allDay)continue;
+  for(const d of days){
+   if(!overlapsDay(e.startAt,e.endAt,d))continue;
+   const dayStart=startOfDay(d).getTime(),dayEnd=addDays(startOfDay(d),1).getTime();
+   const s=Math.max(new Date(e.startAt).getTime(),dayStart),end=Math.min(new Date(e.endAt).getTime(),dayEnd);
+   first=Math.min(first,Math.floor((s-dayStart)/3600000));last=Math.max(last,Math.ceil((end-dayStart)/3600000));
+  }
+ }
+ return {first:Math.max(0,first),last:Math.min(24,Math.max(last,first+1))};
+}
+
+// 같은 날 겹치는 일정을 시간표처럼 나란히 놓을 열을 정한다. 서로 이어서 겹치는 일정 묶음마다 필요한 열 수를 세고,
+// 각 일정은 비어 있는 가장 왼쪽 열에 들어간다. 반환: 일정 순서대로 {col, cols}.
+export function sideBySide(items:{startAt:string;endAt:string}[]){
+ const order=items.map((e,i)=>({i,s:new Date(e.startAt).getTime(),e:new Date(e.endAt).getTime()})).sort((a,b)=>a.s-b.s||b.e-a.e);
+ const result:{col:number;cols:number}[]=items.map(()=>({col:0,cols:1}));
+ let cluster:typeof order=[],colEnds:number[]=[],clusterEnd=-Infinity;
+ const close=()=>{for(const x of cluster)result[x.i].cols=colEnds.length;cluster=[];colEnds=[]};
+ for(const x of order){
+  if(x.s>=clusterEnd)close();
+  let col=colEnds.findIndex(end=>end<=x.s);if(col<0){col=colEnds.length;colEnds.push(x.e)}else colEnds[col]=x.e;
+  result[x.i].col=col;cluster.push(x);clusterEnd=Math.max(clusterEnd,x.e);
+ }
+ close();
+ return result;
+}
