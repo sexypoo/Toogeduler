@@ -60,12 +60,12 @@
 
 /* ── 겹치는 시간: 앱 아이콘의 두 사각형과 흰 교집합을 로그인 첫 화면에 그대로 ── */
 /* 제목·설명 아래 남는 공간을 채우고, 그 안에 들어가는 가장 큰 정사각형으로 그립니다. 창이 낮아도 작아질 뿐 글과 겹치지 않습니다. */
-@media(min-width:901px){.login-story{display:flex;flex-direction:column}}.overlap-hero{position:relative;flex:1 1 0;min-height:0;margin-top:28px;container-type:size;z-index:1}.overlap-square{position:absolute;right:3%;bottom:0;width:min(400px,94cqw,100cqh);aspect-ratio:1;container-type:inline-size}
-@container (max-height:150px){.overlap-square{display:none}}.overlap-hero .lane{position:absolute;width:64%;aspect-ratio:1;overflow:hidden;border-radius:22%;background:#ffffff4d;color:#fff;padding:7.5cqw;display:flex;flex-direction:column;gap:1cqw;white-space:nowrap;animation:lane-in .9s cubic-bezier(.2,.8,.2,1) both}.overlap-hero .lane b{font-size:5.5cqw;font-weight:800;letter-spacing:-.02em}.overlap-hero .lane span{font-size:max(11px,3.8cqw);color:#f5f6f7}.overlap-hero .lane-a{left:0;top:0;--from:-14%}.overlap-hero .lane-b{right:0;bottom:0;justify-content:flex-end;align-items:flex-end;text-align:right;--from:14%}.overlap-hero .meet{position:absolute;left:36%;top:36%;width:28%;aspect-ratio:1;overflow:hidden;border-radius:50% 0 50% 0;background:#fff;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;white-space:nowrap;animation:meet-in .5s .75s ease-out both}.overlap-hero .meet b{font-size:5.2cqw;font-weight:800;letter-spacing:-.02em}.overlap-hero .meet span{font-size:3.1cqw;color:var(--teal-strong);font-weight:650;margin-top:.5cqw}
+@media(min-width:901px){.login-story{display:flex;flex-direction:column}}
+@container (max-height:150px){}
 /* 제목·설명과 겹칠 만큼 창이 낮거나 좁으면 그림을 숨깁니다. */
 
-@keyframes lane-in{from{transform:translate(var(--from),var(--from));opacity:.4}}
-@keyframes meet-in{from{opacity:0;transform:scale(.85)}}.mobile-brand .brand-mark{width:38px;height:38px}.login-story .brand{color:#fff}.login-story .brand-mark{background:#ffffff26;color:#eff0f2}.login-panel{background:#fff}.login-page{background:var(--canvas)}/* 버튼과 입력을 손가락·눈 모두에 편한 크기로 */
+
+.mobile-brand .brand-mark{width:38px;height:38px}.login-story .brand{color:#fff}.login-story .brand-mark{background:#ffffff26;color:#eff0f2}.login-panel{background:#fff}.login-page{background:var(--canvas)}/* 버튼과 입력을 손가락·눈 모두에 편한 크기로 */
 .icon-btn,.nav-arrow{color:var(--ink-2)}.people-page h1,.profile-identity h1,.create-card h2{font-weight:800}.people-page>header span{font-size:14px;color:var(--muted)}.sidebar-user>.avatar{margin-left:0;background:var(--teal-wash);color:var(--teal-strong)}.sidebar-user>.sidebar-profile{margin-left:0}.time-axis span:nth-child(1){transform:translateY(2px)}.profile-avatar,.friend-profile-avatar{background:var(--teal-wash);color:var(--teal-strong)}.focused-header,.public-feed>header{background:var(--canvas);border-bottom-color:var(--line)}.focused-page,.public-feed,.friend-calendar-page{background:var(--canvas)}
 @media(max-width:600px){.calendar-toolbar{background:var(--canvas)}.month-grid .today-cell>b,.month-grid .today-cell.sunday>b{background:var(--ink);box-shadow:none}.topbar .mobile-menu,.topbar .notification{background:#fff;border-color:var(--line)}}
 @media(max-width:600px){.calendar-toolbar>.period{grid-template-rows:auto}.calendar-toolbar>.toolbar-actions{align-self:center}.period .nav-arrow{border-color:var(--line)}}/* 히어로 면은 앱 아이콘과 같은 청록→파랑 한 가지로 */
@@ -84,114 +84,40 @@
 .toast.notice{white-space:normal;width:max-content;max-width:calc(100% - 32px);line-height:1.45}.toast.notice svg{flex:none}
 @media(max-width:760px){.event-modal select{min-height:44px}}/* 초대 링크 미리보기 (#19): 기존 .group-preview 를 카드 가운데에 두고,긴 그룹 이름은 말줄임 없이 줄바꿈한다. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.invite-card .group-preview.invite-group{height:auto;width:100%;margin:20px auto;text-align:left;align-items:center}.invite-group>i{flex:none}.invite-group>span{min-width:0}.invite-card .invite-group h1{margin:0 0 4px;overflow-wrap:anywhere}.invite-group .invite-owner{font-size:13px;color:#666a75}.invite-card .invite-group small{color:#666a75}.invite-card .primary.full{height:48px}.invite-card .social{min-height:44px}.invite-card .switch-auth{min-height:44px;margin-top:8px}.invite-card .form-error{text-align:left}
-@media(max-width:340px){.invite-card .social-row{grid-template-columns:1fr}}
-/* 함께 되는 시간: 고른 시간 카드와 날짜 × 시간 겹침 지도. 모두 되는 구간은 앱 아이콘의 청록→파랑 겹침 색을 쓴다. */
-.overlap-results{padding:22px 25px 30px}
-.picked{border:1px solid var(--line);border-radius:16px;background:#f7f7f8;padding:18px 18px 16px;margin-bottom:24px;scroll-margin:12px}
-.picked.all{border-color:#bae0eb;background:linear-gradient(135deg,#e2f2f6,#eff0f2)}
-.picked>p{font-size:12.5px;font-weight:700;color:var(--teal-strong)}
-.picked h3{margin:5px 0 13px;font-size:27px;font-weight:800;letter-spacing:-.9px;line-height:1.15;color:var(--ink);font-variant-numeric:tabular-nums}
-.picked h3 span{display:block;font-size:15px;font-weight:700;letter-spacing:-.3px;color:var(--ink-2);margin-bottom:3px}
-.picked-people{display:flex;align-items:center;gap:12px;font-size:13px;line-height:1.45;color:var(--ink-2);margin-bottom:15px}
-.faces{display:flex;flex:none;padding-left:8px}
-.faces i{width:28px;height:28px;margin-left:-8px;border-radius:9px;opacity:.88;color:#fff;font-style:normal;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.picked-actions{display:flex;gap:8px}
-.picked-actions .primary{flex:1;height:46px;margin:0;border-radius:12px;font-size:15px}
-.picked-actions .primary svg{width:17px;height:17px}
-.picked-actions .icon-btn{display:inline-flex;width:46px;height:46px;flex:none;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink-2);cursor:pointer}
-.picked-actions .icon-btn svg{width:17px;height:17px}
-.overlap-map{display:grid;gap:6px}
-.map-scale,.map-row{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:10px}
-.map-scale>div{position:relative;height:16px}
-.map-scale small{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--faint);white-space:nowrap}
-.map-scale small:first-child{transform:none}
-.map-scale small:last-child:not(:first-child){transform:translateX(-100%)}
-.map-day{display:flex;align-items:baseline;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap}
-.map-day b{min-width:31px;font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
-.map-day.sun,.map-day.sun b{color:var(--danger)}
-.map-day.sat,.map-day.sat b{color:var(--blue)}
-.map-track{position:relative;height:28px;border-radius:8px;background:var(--line-soft)}
-.seg{position:absolute;top:3px;bottom:3px;min-width:6px;padding:0;border:0;border-radius:6px;background:rgb(19 163 158/calc(.14 + var(--share)*.4));cursor:pointer;transition:filter .15s}
-/* 그라데이션을 구간마다 새로 칠하지 않고 하루 전체 폭에 한 번 깔아, 짧은 구간도 그 시각의 색을 그대로 보여준다. */
-.seg.all{background:linear-gradient(90deg,#1d8fb2,#1da1e3) calc(var(--l)/max(1 - var(--w),.001)*100%) 0/calc(100%/var(--w)) 100% no-repeat}
-.seg:hover{filter:brightness(.93)}
-.seg.on{z-index:1;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink)}
-.seg:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-.map-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;padding-left:66px;font-size:12px;color:var(--muted)}
-.map-legend span{display:flex;align-items:center;gap:6px}
-.map-legend i{width:18px;height:10px;border-radius:3px}
-.map-legend i.all{background:linear-gradient(90deg,#1d8fb2,#1da1e3)}
-.map-legend i.some{background:rgb(19 163 158/.34)}
-@media(max-width:600px){.overlap-results{padding:18px 17px 26px}.picked h3{font-size:24px}.map-scale,.map-row{grid-template-columns:48px minmax(0,1fr);gap:8px}.map-day{flex-direction:column;gap:0;line-height:1.2}.map-track{height:36px}.seg{top:4px;bottom:4px}.map-legend{padding-left:56px}}
-/* ───────── 필름 디자인 ─────────
-   사람마다 투명한 색 필름 한 장. 겹치면 multiply로 섞여 진해진다. 바탕은 흰색과 아주 옅은 중성 회색,
-   구조는 그림자 대신 가는 선, 행동은 잉크색 버튼 하나로 정리한다. */
-.login-story{background:var(--canvas);color:var(--ink);border-right:1px solid var(--line)}
-.login-story .brand{color:var(--ink)}
-.login-story .brand-mark{background:none}
-.story-copy h1{color:var(--ink);letter-spacing:-.045em}
-.story-copy>p:last-child{color:var(--ink-2)}
-.overlap-hero .lane{background:var(--lane);mix-blend-mode:multiply;color:var(--ink);border-radius:18%}
-.overlap-hero .lane span{color:var(--ink-2)}
-.overlap-hero .lane-a{--lane:#62c3e6}
-.overlap-hero .lane-b{--lane:#f08cb1}
-.overlap-hero .meet{background:none;color:#fff;border-radius:0;z-index:2}
-.overlap-hero .meet span{color:#fff;opacity:.9}
-.event-block{background:color-mix(in srgb,var(--c) 26%,transparent);border:0;border-radius:6px;mix-blend-mode:multiply;color:color-mix(in srgb,var(--c) 42%,#141a26)}
-.event-block span{color:inherit;font-weight:700;letter-spacing:-.01em}
-.event-block small{color:color-mix(in srgb,var(--c) 30%,#4a5263)}
-.event-block:hover{filter:none;box-shadow:none;background:color-mix(in srgb,var(--c) 36%,transparent)}
-.owner-avatar,.avatar-stack i,.people-strip i{border-radius:4px}
-.faces i{border-radius:7px;mix-blend-mode:multiply;opacity:1}
-.people-strip{background:#fff;border-color:var(--line);border-radius:8px}
-.face-stack{isolation:isolate}
-.face-stack span{border-radius:6px;mix-blend-mode:multiply;box-shadow:none;border:0}
-.event-block{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
-/* 함께 되는 시간: 모두의 필름이 다 겹친 구간은 가장 진한 겹침색, 일부만 겹친 구간은 겹친 장수만큼 진하게 */
-.picked{background:#fff;border-color:var(--line);border-radius:10px}
-.picked.all{background:#fff;border:1.5px solid var(--ink)}
-.picked>p{color:var(--ink-2)}
-.seg{background:color-mix(in srgb,var(--film-cyan) calc(var(--share)*55%),transparent)}
-.seg.all{background:var(--overlap)}
-.seg.on{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink)}
-.map-legend i.all{background:var(--overlap)}
-.map-legend i.some{background:color-mix(in srgb,var(--film-cyan) 35%,transparent)}
-.map-track{background:var(--line-soft);border-radius:4px}
-.seg{border-radius:3px}
-.month-grid button.month-event{background:color-mix(in srgb,var(--c) 22%,transparent);box-shadow:none;mix-blend-mode:multiply;color:color-mix(in srgb,var(--c) 42%,#141a26);border-radius:4px}
-.month-grid button.month-event:hover{background:color-mix(in srgb,var(--c) 32%,transparent)}
-.month-grid button.month-event>span{color:color-mix(in srgb,var(--c) 42%,#141a26)}
-.modal-color{width:14px;height:14px;border-radius:4px}
-.visibility-options button.selected{border-color:var(--ink);background:#fff;color:var(--ink)}
-/* 마이페이지: 카드 묶음 대신 가는 선으로 나눈 한 장의 문서. 숫자는 크게, 아이콘 타일은 걷어낸다. */
-.profile-page{background:#fff}
-.profile-avatar{background:color-mix(in srgb,var(--film-cyan) 22%,#fff);border-radius:14px;color:var(--ink)}
-.profile-avatar img{border-radius:14px}
-.friend-code-card{border-radius:8px}
-.profile-stats{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.profile-stats article{height:auto;background:none;border:0;border-radius:0;padding:20px 0;align-items:baseline}
-.profile-stats article+article{border-left:1px solid var(--line);padding-left:22px}
-.profile-stats article>svg{display:none}
-.profile-stats b{font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
-.profile-stats small{font-size:13px;color:var(--muted);margin-top:6px}
-.profile-card,.account-card{border:0;border-top:1px solid var(--line);border-radius:0;padding:24px 0 0;background:none}
-.profile-grid{gap:48px}
-.account-card>div>svg{color:var(--muted)}
-@media(max-width:600px){.profile-stats article{padding:14px 0}.profile-stats article+article{padding-left:14px}.profile-stats b{font-size:26px}.profile-grid{gap:28px}}
-/* 그룹 만들기: 그라데이션 판 대신 옅은 회색 바탕에 필름 두 장 */
-.group-create-story{background:var(--canvas);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:none}
-.group-create-story>*{position:relative;z-index:1}
-.group-create-story:before,.group-create-story:after{content:"";position:absolute;width:84px;height:84px;border-radius:18px;mix-blend-mode:multiply;right:44px;top:78px}
-.group-create-story:before{background:#62c3e6;transform:translate(-40px,-40px)}
-.group-create-story:after{background:#f08cb1}
-.group-create-story>p:last-of-type{color:var(--ink-2)}
-.group-create-story svg{color:var(--ink)}
-.create-card{border-radius:14px;box-shadow:none}
-.group-preview{border-radius:8px;background:#fff}
-.group-preview>i{width:14px;height:14px;border-radius:4px}
-/* 공개 일정: 그라데이션 배너와 지구본 장식 대신 회색 바탕 위 큰 제목 */
-.public-hero{background:var(--canvas);color:var(--ink);border-bottom:1px solid var(--line)}
-.public-hero h1{color:var(--ink);letter-spacing:-.04em}
-.public-hero p{color:var(--ink-2)}
-.globe-orbit{display:none}
-.public-event-grid article,.public-feed article{box-shadow:none}
+@media(max-width:340px){.invite-card .social-row{grid-template-columns:1fr}}/* 함께 되는 시간: 고른 시간 카드와 날짜 × 시간 겹침 지도. 모두 되는 구간은 앱 아이콘의 청록→파랑 겹침 색을 쓴다. */
+.overlap-results{padding:22px 25px 30px}.picked{border:1px solid var(--line);border-radius:16px;background:#f7f7f8;padding:18px 18px 16px;margin-bottom:24px;scroll-margin:12px}.picked.all{border-color:#bae0eb;background:linear-gradient(135deg,#e2f2f6,#eff0f2)}.picked>p{font-size:12.5px;font-weight:700;color:var(--teal-strong)}.picked h3{margin:5px 0 13px;font-size:27px;font-weight:800;letter-spacing:-.9px;line-height:1.15;color:var(--ink);font-variant-numeric:tabular-nums}.picked h3 span{display:block;font-size:15px;font-weight:700;letter-spacing:-.3px;color:var(--ink-2);margin-bottom:3px}.picked-people{display:flex;align-items:center;gap:12px;font-size:13px;line-height:1.45;color:var(--ink-2);margin-bottom:15px}.faces{display:flex;flex:none;padding-left:8px}.faces i{width:28px;height:28px;margin-left:-8px;border-radius:9px;opacity:.88;color:#fff;font-style:normal;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}.picked-actions{display:flex;gap:8px}.picked-actions .primary{flex:1;height:46px;margin:0;border-radius:12px;font-size:15px}.picked-actions .primary svg{width:17px;height:17px}.picked-actions .icon-btn{display:inline-flex;width:46px;height:46px;flex:none;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink-2);cursor:pointer}.picked-actions .icon-btn svg{width:17px;height:17px}.overlap-map{display:grid;gap:6px}.map-scale,.map-row{display:grid;grid-template-columns:56px minmax(0,1fr);align-items:center;gap:10px}.map-scale>div{position:relative;height:16px}.map-scale small{position:absolute;top:0;transform:translateX(-50%);font-size:11px;color:var(--faint);white-space:nowrap}.map-scale small:first-child{transform:none}.map-scale small:last-child:not(:first-child){transform:translateX(-100%)}.map-day{display:flex;align-items:baseline;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap}.map-day b{min-width:31px;font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}.map-day.sun,.map-day.sun b{color:var(--danger)}.map-day.sat,.map-day.sat b{color:var(--blue)}.map-track{position:relative;height:28px;border-radius:8px;background:var(--line-soft)}.seg{position:absolute;top:3px;bottom:3px;min-width:6px;padding:0;border:0;border-radius:6px;background:rgb(19 163 158/calc(.14 + var(--share)*.4));cursor:pointer;transition:filter .15s}/* 그라데이션을 구간마다 새로 칠하지 않고 하루 전체 폭에 한 번 깔아,짧은 구간도 그 시각의 색을 그대로 보여준다. */
+.seg.all{background:linear-gradient(90deg,#1d8fb2,#1da1e3) calc(var(--l)/max(1 - var(--w),.001)*100%) 0/calc(100%/var(--w)) 100% no-repeat}.seg:hover{filter:brightness(.93)}.seg.on{z-index:1;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink)}.seg:focus-visible{outline:2px solid var(--blue);outline-offset:3px}.map-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;padding-left:66px;font-size:12px;color:var(--muted)}.map-legend span{display:flex;align-items:center;gap:6px}.map-legend i{width:18px;height:10px;border-radius:3px}.map-legend i.all{background:linear-gradient(90deg,#1d8fb2,#1da1e3)}.map-legend i.some{background:rgb(19 163 158/.34)}
+@media(max-width:600px){.overlap-results{padding:18px 17px 26px}.picked h3{font-size:24px}.map-scale,.map-row{grid-template-columns:48px minmax(0,1fr);gap:8px}.map-day{flex-direction:column;gap:0;line-height:1.2}.map-track{height:36px}.seg{top:4px;bottom:4px}.map-legend{padding-left:56px}}/* ───────── 필름 디자인 ─────────
+   사람마다 투명한 색 필름 한 장. 겹치면 multiply로 섞여 진해진다. 바탕은 흰색과 아주 옅은 중성 회색,구조는 그림자 대신 가는 선,행동은 잉크색 버튼 하나로 정리한다. */
+.login-story{background:var(--canvas);color:var(--ink);border-right:1px solid var(--line)}.login-story .brand{color:var(--ink)}.login-story .brand-mark{background:none}.story-copy h1{color:var(--ink);letter-spacing:-.045em}.story-copy>p:last-child{color:var(--ink-2)}.event-block{background:color-mix(in srgb,var(--c) 26%,transparent);border:0;border-radius:6px;mix-blend-mode:multiply;color:color-mix(in srgb,var(--c) 42%,#141a26)}.event-block span{color:inherit;font-weight:700;letter-spacing:-.01em}.event-block small{color:color-mix(in srgb,var(--c) 30%,#4a5263)}.event-block:hover{filter:none;box-shadow:none;background:color-mix(in srgb,var(--c) 36%,transparent)}.owner-avatar,.avatar-stack i,.people-strip i{border-radius:4px}.faces i{border-radius:7px;mix-blend-mode:multiply;opacity:1}.people-strip{background:#fff;border-color:var(--line);border-radius:8px}.face-stack{isolation:isolate}.face-stack span{border-radius:6px;mix-blend-mode:multiply;box-shadow:none;border:0}.event-block{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}/* 함께 되는 시간: 모두의 필름이 다 겹친 구간은 가장 진한 겹침색,일부만 겹친 구간은 겹친 장수만큼 진하게 */
+.picked{background:#fff;border-color:var(--line);border-radius:10px}.picked.all{background:#fff;border:1.5px solid var(--ink)}.picked>p{color:var(--ink-2)}.seg{background:color-mix(in srgb,var(--film-cyan) calc(var(--share)*55%),transparent)}.seg.all{background:var(--overlap)}.seg.on{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ink)}.map-legend i.all{background:var(--overlap)}.map-legend i.some{background:color-mix(in srgb,var(--film-cyan) 35%,transparent)}.map-track{background:var(--line-soft);border-radius:4px}.seg{border-radius:3px}.month-grid button.month-event{background:color-mix(in srgb,var(--c) 22%,transparent);box-shadow:none;mix-blend-mode:multiply;color:color-mix(in srgb,var(--c) 42%,#141a26);border-radius:4px}.month-grid button.month-event:hover{background:color-mix(in srgb,var(--c) 32%,transparent)}.month-grid button.month-event>span{color:color-mix(in srgb,var(--c) 42%,#141a26)}.modal-color{width:14px;height:14px;border-radius:4px}.visibility-options button.selected{border-color:var(--ink);background:#fff;color:var(--ink)}/* 마이페이지: 카드 묶음 대신 가는 선으로 나눈 한 장의 문서. 숫자는 크게,아이콘 타일은 걷어낸다. */
+.profile-page{background:#fff}.profile-avatar{background:color-mix(in srgb,var(--film-cyan) 22%,#fff);border-radius:14px;color:var(--ink)}.profile-avatar img{border-radius:14px}.friend-code-card{border-radius:8px}.profile-stats{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.profile-stats article{height:auto;background:none;border:0;border-radius:0;padding:20px 0;align-items:baseline}.profile-stats article+article{border-left:1px solid var(--line);padding-left:22px}.profile-stats article>svg{display:none}.profile-stats b{font-size:34px;font-weight:700;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}.profile-stats small{font-size:13px;color:var(--muted);margin-top:6px}.profile-card,.account-card{border:0;border-top:1px solid var(--line);border-radius:0;padding:24px 0 0;background:none}.profile-grid{gap:48px}.account-card>div>svg{color:var(--muted)}
+@media(max-width:600px){.profile-stats article{padding:14px 0}.profile-stats article+article{padding-left:14px}.profile-stats b{font-size:26px}.profile-grid{gap:28px}}/* 그룹 만들기: 그라데이션 판 대신 옅은 회색 바탕에 필름 두 장 */
+.group-create-story{background:var(--canvas);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:none}.group-create-story>*{position:relative;z-index:1}.group-create-story:before,.group-create-story:after{content:"";position:absolute;width:84px;height:84px;border-radius:18px;mix-blend-mode:multiply;right:44px;top:78px}.group-create-story:before{background:#62c3e6;transform:translate(-40px,-40px)}.group-create-story:after{background:#f08cb1}.group-create-story>p:last-of-type{color:var(--ink-2)}.group-create-story svg{color:var(--ink)}.create-card{border-radius:14px;box-shadow:none}.group-preview{border-radius:8px;background:#fff}.group-preview>i{width:14px;height:14px;border-radius:4px}/* 공개 일정: 그라데이션 배너와 지구본 장식 대신 회색 바탕 위 큰 제목 */
+.public-hero{background:var(--canvas);color:var(--ink);border-bottom:1px solid var(--line)}.public-hero h1{color:var(--ink);letter-spacing:-.04em}.public-hero p{color:var(--ink-2)}.globe-orbit{display:none}.public-event-grid article,.public-feed article{box-shadow:none}
+
+/* 로그인 그림: 토요일 오후 타임라인. 두 사람의 필름 막대가 놓이고, 겹친 3–5시만 "함께" 줄에 겹침색으로 남는다. */
+.hero-timeline{position:relative;z-index:1;margin:auto 0 9vh;max-width:540px}
+.hero-timeline>p{margin:0 0 14px 64px;font-size:13px;font-weight:650;color:var(--muted)}
+.ht-grid{position:relative;display:grid;gap:10px}
+.ht-grid:after{content:"";position:absolute;top:26px;bottom:-6px;left:calc(64px + (100% - 64px)*2/7);width:calc((100% - 64px)*2/7);border-inline:1px dashed color-mix(in srgb,var(--overlap) 55%,transparent);pointer-events:none}
+.ht-scale{position:relative;height:16px;margin-left:64px;font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.ht-scale span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.ht-scale span:first-child{transform:none}
+.ht-scale span:last-child{transform:translateX(-100%)}
+.ht-scale span:nth-child(1){left:0.0000%}.ht-scale span:nth-child(2){left:14.2857%}.ht-scale span:nth-child(3){left:28.5714%}.ht-scale span:nth-child(4){left:42.8571%}.ht-scale span:nth-child(5){left:57.1429%}.ht-scale span:nth-child(6){left:71.4286%}.ht-scale span:nth-child(7){left:85.7143%}.ht-scale span:nth-child(8){left:100.0000%}
+.ht-row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center}
+.ht-row b{font-size:14px;font-weight:700;color:var(--ink)}
+.ht-row.together b{color:var(--overlap)}
+.ht-track{position:relative;height:42px;border-right:1px solid var(--line);background:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px calc(100%/7))}
+.ht-film{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 12px;border-radius:8px;font-style:normal;font-size:13px;font-weight:650;white-space:nowrap;mix-blend-mode:multiply}
+.ht-film.cyan{background:color-mix(in srgb,var(--film-cyan) 30%,transparent);color:#0b4c63}
+.ht-film.magenta{background:color-mix(in srgb,var(--film-magenta) 26%,transparent);color:#76203f}
+.ht-film.both{background:var(--overlap);color:#fff;mix-blend-mode:normal}
+/* 소셜 로그인: 각 서비스의 공식 색과 로고 */
+.social{height:46px;min-height:46px;border-radius:8px;gap:8px;font-size:14px;font-weight:600}
+.social svg{width:18px;height:18px;flex:none}
+.social span{display:inline}
+.social.kakao{background:#fee500;color:rgb(0 0 0/.85)}
+.social.google{background:#fff;border:1px solid #dadce0;color:#1f1f1f}
+.social.google:hover{background:#f8f9fa}
