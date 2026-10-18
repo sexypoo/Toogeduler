@@ -81,6 +81,29 @@ class AvailabilityControllerTest {
         assertBlock(blocks.getFirst(),"2026-10-09T17:00:00+09:00","2026-10-09T18:00:00+09:00",true);
     }
 
+    @Test void anotherMembersPrivateEventStillBlocksTheirTimeWithoutRevealingIt(){
+        GroupRepository groups=mock(GroupRepository.class);GroupMemberRepository members=mock(GroupMemberRepository.class);EventRepository events=mock(EventRepository.class);
+        AvailabilityController controller=new AvailabilityController(groups,members,events);
+        controller.clock=Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"),ZoneOffset.UTC);
+        User me=user(1L,"나"),sora=user(2L,"소라");
+        Group group=new Group();group.setId(5L);
+        when(groups.findById(5L)).thenReturn(Optional.of(group));
+        when(members.existsByGroupIdAndUserId(5L,1L)).thenReturn(true);
+        when(members.findByGroupId(5L)).thenReturn(List.of(member(group,me),member(group,sora)));
+        // 소라가 유럽에서 만든 비공개 일정: 10월 20일 오후 2–4시(CEST)
+        Event secret=new Event();secret.setId(9L);secret.setOwner(sora);secret.setTitle("비밀 약속");secret.setVisibility(Event.Visibility.PRIVATE);
+        secret.setStartAt(OffsetDateTime.parse("2026-10-20T14:00:00+02:00"));secret.setEndAt(OffsetDateTime.parse("2026-10-20T16:00:00+02:00"));
+        when(events.busyEvents(anyCollection(),any(),any())).thenReturn(List.of(secret));
+
+        List<AvailabilityController.Slot> blocks=controller.blocks(new UsernamePasswordAuthenticationToken(me,null,List.of()),5L,
+            LocalDate.of(2026,10,20),LocalDate.of(2026,10,20),LocalTime.of(9,0),LocalTime.of(22,0),60,"Europe/Berlin");
+
+        assertEquals(3,blocks.size());
+        assertBlock(blocks.get(1),"2026-10-20T14:00:00+02:00","2026-10-20T16:00:00+02:00",false);
+        assertEquals(List.of("나"),blocks.get(1).availablePeople());
+        assertFalse(blocks.toString().contains("비밀 약속"),"비공개 일정 제목이 결과에 실리면 안 된다");
+    }
+
     private static void assertBlock(AvailabilityController.Slot block,String start,String end,boolean everyone){
         assertEquals(OffsetDateTime.parse(start).toInstant(),block.startAt().toInstant());
         assertEquals(OffsetDateTime.parse(end).toInstant(),block.endAt().toInstant());
