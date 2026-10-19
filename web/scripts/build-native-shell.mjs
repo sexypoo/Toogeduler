@@ -1,9 +1,9 @@
 // Capacitor 네이티브 셸에 함께 묶이는 로컬 오프라인 안내 페이지를 생성합니다.
 // 원격 운영 사이트 로딩이 실패하면 WebView 가 흰 화면 대신 이 페이지를 보여줍니다.
 // (capacitor.config.ts 의 server.errorPath 로 연결됩니다.)
-import {mkdir, writeFile} from "node:fs/promises";
-import {dirname, resolve} from "node:path";
-import {fileURLToPath} from "node:url";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const serverUrl = process.env.CAPACITOR_SERVER_URL;
@@ -11,7 +11,7 @@ const serverUrl = process.env.CAPACITOR_SERVER_URL;
 if (!serverUrl || !serverUrl.startsWith("https://")) {
   console.error(
     "CAPACITOR_SERVER_URL 이 https:// 주소로 설정되어야 합니다.\n" +
-      "  예) CAPACITOR_SERVER_URL=https://app.toogeduler.com npm run mobile:sync"
+      "  예) CAPACITOR_SERVER_URL=https://app.toogeduler.com npm run mobile:sync",
   );
   process.exit(1);
 }
@@ -75,7 +75,7 @@ const html = `<!doctype html>
 `;
 
 const dir = resolve(root, "native-shell");
-await mkdir(dir, {recursive: true});
+await mkdir(dir, { recursive: true });
 await writeFile(resolve(dir, "error.html"), html, "utf8");
 await writeFile(resolve(dir, "index.html"), html, "utf8");
 console.log("native-shell/error.html 생성 완료 (" + serverUrl + ")");
