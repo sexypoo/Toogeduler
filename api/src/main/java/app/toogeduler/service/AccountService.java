@@ -2,22 +2,22 @@ package app.toogeduler.service;
 
 import app.toogeduler.domain.*;
 import app.toogeduler.repo.*;
+import java.util.Comparator;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.List;
-
 /**
  * 회원 탈퇴 처리.
  *
- * App Store 심사 가이드라인 5.1.1(v)와 Google Play 데이터 삭제 정책은
- * 계정을 만들 수 있는 앱이 앱 안에서 계정 삭제도 제공하도록 요구한다.
- * 다른 사용자의 데이터는 보존하면서 탈퇴자의 개인 데이터만 완전히 지운다.
+ * <p>App Store 심사 가이드라인 5.1.1(v)와 Google Play 데이터 삭제 정책은 계정을 만들 수 있는 앱이 앱 안에서 계정 삭제도 제공하도록 요구한다. 다른
+ * 사용자의 데이터는 보존하면서 탈퇴자의 개인 데이터만 완전히 지운다.
  */
-@Service @RequiredArgsConstructor @Slf4j
+@Service
+@RequiredArgsConstructor
+@Slf4j
 public class AccountService {
     private final UserRepository users;
     private final EventRepository events;
@@ -41,16 +41,20 @@ public class AccountService {
         //    아무도 없으면 그룹 자체를 삭제한다.
         for (Group group : groups.findByOwnerId(userId)) {
             List<GroupMember> groupMembers = members.findByGroupId(group.getId());
-            GroupMember successor = groupMembers.stream()
-                    .filter(m -> !m.getUser().getId().equals(userId))
-                    .min(Comparator.comparing(GroupMember::getJoinedAt))
-                    .orElse(null);
+            GroupMember successor =
+                    groupMembers.stream()
+                            .filter(m -> !m.getUser().getId().equals(userId))
+                            .min(Comparator.comparing(GroupMember::getJoinedAt))
+                            .orElse(null);
             if (successor != null) {
                 group.setOwner(successor.getUser());
                 successor.setRole(GroupMember.Role.OWNER);
                 members.save(successor);
                 groups.save(group);
-                log.info("Transferred group {} ownership to user {} on account deletion", group.getId(), successor.getUser().getId());
+                log.info(
+                        "Transferred group {} ownership to user {} on account deletion",
+                        group.getId(),
+                        successor.getUser().getId());
             } else {
                 // 남은 멤버가 없으면 일정 연결을 먼저 끊고 그룹을 삭제한다.
                 groupCleanup.deleteGroup(group);

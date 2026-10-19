@@ -1,3 +1,4 @@
 import CalendarApp from "@/components/calendar-app";
-export default function Home(){return <CalendarApp/>}
-
+export default function Home() {
+  return <CalendarApp />;
+}

@@ -1,0 +1,8 @@
+.next
+node_modules
+android
+ios
+native-shell
+public
+package-lock.json
+next-env.d.ts

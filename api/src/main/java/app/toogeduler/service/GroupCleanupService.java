@@ -12,11 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 그룹 삭제 시 참조 정리.
  *
- * event_groups 조인 테이블은 Event 가 소유하고 Group 에는 역방향 매핑이 없다.
- * 따라서 그룹 행을 먼저 지우면 남은 조인 행 때문에 외래 키 제약 위반이 발생한다.
- * 그룹을 삭제하는 모든 경로는 이 서비스를 거쳐야 한다.
+ * <p>event_groups 조인 테이블은 Event 가 소유하고 Group 에는 역방향 매핑이 없다. 따라서 그룹 행을 먼저 지우면 남은 조인 행 때문에 외래 키 제약
+ * 위반이 발생한다. 그룹을 삭제하는 모든 경로는 이 서비스를 거쳐야 한다.
  */
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class GroupCleanupService {
     private final EventRepository events;
     private final GroupRepository groups;
