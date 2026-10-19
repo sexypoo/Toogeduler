@@ -406,9 +406,7 @@ textarea:focus-visible {
 .people-strip {
   margin: 0 30px 14px;
   padding: 11px 15px;
-  background: #f4f4f5;
   border: 1px solid #d4ecf3;
-  border-radius: 11px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -419,8 +417,6 @@ textarea:focus-visible {
 .face-stack span {
   width: 27px;
   height: 27px;
-  border-radius: 50%;
-  border: 2px solid #f4f4f5;
   color: white;
   font-size: 12.5px;
   display: flex;
@@ -528,8 +524,6 @@ textarea:focus-visible {
   text-align: left;
 }
 .week-scroll {
-  height: calc(100vh - 300px);
-  min-height: 520px;
   display: grid;
   grid-template-columns: 72px repeat(7, 1fr);
   overflow-y: auto;
@@ -599,7 +593,6 @@ textarea:focus-visible {
 .day-lane {
   position: relative;
   border-left: 1px solid #eff0f2;
-  min-height: 960px;
   touch-action: none;
 }
 .day-lane.is-today {
@@ -617,24 +610,16 @@ textarea:focus-visible {
   left: 4px;
   right: 4px;
   min-height: 26px;
-  border: 0;
   border-left: 3px solid;
-  border-radius: 6px;
   padding: 5px 7px;
-  mix-blend-mode: multiply;
   text-align: left;
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
 }
-.event-block:hover {
-  filter: saturate(1.1);
-  box-shadow: none;
-}
 .event-block span {
   display: block;
   font-size: 13px;
-  font-weight: 800;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -757,11 +742,6 @@ textarea:focus-visible {
   font-size: 17px;
   margin: 0;
 }
-.modal-color {
-  width: 8px;
-  height: 24px;
-  border-radius: 5px;
-}
 .title-input input {
   width: 100%;
   font-size: 23px;
@@ -803,7 +783,7 @@ textarea:focus-visible {
 .check-line {
   display: flex;
   align-items: center;
-  gap: 8px !important;
+  gap: 8px;
   margin: 10px 0;
 }
 .check-line input {
@@ -1042,14 +1022,11 @@ textarea:focus-visible {
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(420px, 1.15fr) minmax(430px, 0.85fr);
-  background: #fff;
 }
 .login-story {
   position: relative;
   overflow: hidden;
   padding: 40px 52px;
-  color: white;
-  background: linear-gradient(150deg, #1c8aac 0%, #1ca0e2 100%);
 }
 .brand-light {
   color: white;
@@ -1064,13 +1041,11 @@ textarea:focus-visible {
   font-size: clamp(44px, 5.2vw, 72px);
   font-weight: 800;
   line-height: 1.12;
-  letter-spacing: -0.045em;
   margin: 0 0 22px;
 }
 .story-copy > p:last-child {
   font-size: 17px;
   line-height: 1.75;
-  color: #eeeff1;
   margin: 0;
 }
 .login-panel {
@@ -1175,13 +1150,10 @@ textarea:focus-visible {
   gap: 9px;
 }
 .social {
-  height: 42px;
-  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  font-weight: 900;
 }
 .kakao {
   background: #fee500;
@@ -1286,24 +1258,21 @@ textarea:focus-visible {
     padding: 28px;
   }
 }
+/* 움직임 줄이기 설정: 모든 애니메이션보다 이겨야 하므로 !important */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Native mobile calendar: respect the notch and keep a full seven-day week visible. */
 @media (max-width: 600px) {
   .top-actions .icon-btn {
     display: none;
-  }
-  .calendar-toolbar {
-    align-items: flex-start;
-    gap: 14px;
-  }
-  .period {
-    flex-wrap: wrap;
-  }
-  .period h1 {
-    width: 100%;
-    order: -1;
-    margin: 0 0 5px;
-  }
-  .toolbar-actions {
-    align-self: flex-end;
   }
   .find-time {
     font-size: 0;
@@ -1312,12 +1281,7 @@ textarea:focus-visible {
     justify-content: center;
   }
   .add-event {
-    width: 38px;
-    padding: 0;
     font-size: 0;
-  }
-  .segmented {
-    display: none;
   }
   .calendar-card {
     margin: 0;
@@ -1340,34 +1304,13 @@ textarea:focus-visible {
   .login-panel {
     padding: 24px;
   }
-  .event-modal {
-    padding: 18px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *:before,
-  *:after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Native mobile calendar: respect the notch and keep a full seven-day week visible. */
-@media (max-width: 600px) {
   html,
   body {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
   }
-  .app-shell {
-    min-height: 100dvh;
-  }
   .topbar {
-    height: calc(62px + env(safe-area-inset-top));
-    padding: env(safe-area-inset-top) 14px 0;
     position: relative;
     z-index: 40;
   }
@@ -1389,55 +1332,34 @@ textarea:focus-visible {
   .calendar-toolbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    padding: 14px 12px 12px;
-    gap: 10px;
     position: relative;
     z-index: 10;
   }
   .period {
-    display: grid;
+    flex-wrap: wrap;
     grid-template-columns: auto 40px 40px;
-    gap: 4px;
     min-width: 0;
-  }
-  .period h1 {
-    grid-column: 1/4;
-    width: auto;
-    font-size: 19px;
-    margin: 0 0 5px;
-    order: initial;
   }
   .today,
   .nav-arrow {
     height: 40px;
     touch-action: manipulation;
   }
-  .toolbar-actions {
-    align-self: end;
-    gap: 6px;
-  }
   .segmented {
     display: flex;
     position: relative;
     z-index: 2;
-    padding: 3px;
   }
   .segmented button {
-    height: 36px;
-    min-width: 38px;
     touch-action: manipulation;
   }
   .find-time,
   .add-event {
-    width: 40px;
-    height: 40px;
     touch-action: manipulation;
   }
   .calendar-card {
     width: 100%;
     max-width: 100%;
-    overflow: hidden;
   }
   .week-calendar,
   .month-calendar {
@@ -1462,13 +1384,9 @@ textarea:focus-visible {
     font-size: 7px;
     padding: 0 1px 8px;
   }
-  .week-head span {
-    font-size: 9px;
-  }
   .week-head b {
     width: 26px;
     height: 26px;
-    font-size: 14px;
   }
   .all-day-row > div {
     min-width: 0;
@@ -1484,14 +1402,10 @@ textarea:focus-visible {
     min-height: 12px;
   }
   .week-scroll {
-    height: calc(100dvh - 258px);
-    min-height: 430px;
-    overflow-y: auto;
     overflow-x: hidden;
   }
   .time-axis span {
     right: 3px;
-    font-size: 7px;
   }
   .day-lane {
     min-width: 0;
@@ -1501,9 +1415,6 @@ textarea:focus-visible {
     right: 2px;
     padding: 3px 2px;
     border-left-width: 2px;
-  }
-  .event-block span {
-    font-size: 8px;
   }
   .event-block small {
     display: none;
@@ -1516,20 +1427,12 @@ textarea:focus-visible {
   }
   .month-head span {
     min-width: 0;
-    font-size: 10px;
   }
   .month-grid {
     grid-template-rows: repeat(6, minmax(76px, 1fr));
-    min-height: 456px;
   }
   .month-grid > div {
     min-width: 0;
-    padding: 3px 2px;
-  }
-  .month-grid > div > b {
-    width: 21px;
-    height: 21px;
-    font-size: 10px;
   }
   .month-grid button {
     min-width: 0;
@@ -1544,10 +1447,6 @@ textarea:focus-visible {
   }
   .month-grid button small {
     display: none;
-  }
-  .more-events {
-    font-size: 7px;
-    padding-left: 2px;
   }
 }
 .invite-copy {
@@ -1715,9 +1614,6 @@ textarea:focus-visible {
   opacity: 0;
 }
 .visibility-options button.selected {
-  border-color: #73bfd6;
-  background: #eff8fa;
-  color: #166f8a;
   font-weight: 700;
 }
 .visibility-options button.selected svg {
@@ -1727,19 +1623,19 @@ textarea:focus-visible {
   cursor: default;
 }
 .owner-notice {
-  border: 0 !important;
+  border: 0;
   background: #f4f5f6;
   color: #626772;
   border-radius: 9px;
-  padding: 9px 11px !important;
+  padding: 9px 11px;
   margin-bottom: 8px;
   display: flex;
-  align-items: center !important;
-  gap: 7px !important;
+  align-items: center;
+  gap: 7px;
   font-size: 12.5px;
 }
 .owner-notice svg {
-  width: 14px !important;
+  width: 14px;
   color: #1672a0;
 }
 .event-modal.read-only input,
@@ -1767,10 +1663,6 @@ textarea:focus-visible {
   font-size: 28px;
   letter-spacing: -1.2px;
   margin: 0 0 7px;
-}
-.people-page > header span {
-  font-size: 13px;
-  color: #858a95;
 }
 .people-page > header form {
   display: flex;
@@ -1996,11 +1888,11 @@ textarea:focus-visible {
   color: #737884;
 }
 .member-actions {
-  position: absolute !important;
+  position: absolute;
   right: 0;
   top: 40px;
   z-index: 2;
-  display: flex !important;
+  display: flex;
   background: white;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2073,7 +1965,7 @@ textarea:focus-visible {
 .time-row input {
   min-width: 0;
   height: 38px;
-  padding: 7px 9px !important;
+  padding: 7px 9px;
   background: white;
 }
 .time-row input:disabled {
@@ -2116,7 +2008,6 @@ textarea:focus-visible {
 .public-feed > header {
   height: 72px;
   padding: 0 38px;
-  background: white;
   border-bottom: 1px solid var(--line);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -2162,17 +2053,12 @@ textarea:focus-visible {
   position: relative;
   overflow: hidden;
   min-height: 490px;
-  border-radius: 28px;
   padding: 54px;
-  color: white;
-  background: linear-gradient(145deg, #181d2a, #273045);
-  box-shadow: var(--shadow-overlay);
 }
 .story-icon {
   width: 52px;
   height: 52px;
   border-radius: 17px;
-  background: #ffffff14;
   border: 1px solid #ffffff22;
   display: flex;
   align-items: center;
@@ -2189,7 +2075,6 @@ textarea:focus-visible {
 }
 .group-create-story > p:last-of-type {
   max-width: 370px;
-  color: #c7c9ce;
   font-size: 14px;
   line-height: 1.8;
 }
@@ -2216,9 +2101,7 @@ textarea:focus-visible {
 .create-card {
   background: white;
   border: 1px solid #e6e7ea;
-  border-radius: 20px;
   padding: 34px;
-  box-shadow: var(--shadow-overlay);
 }
 .create-card h2 {
   font-size: 25px;
@@ -2285,18 +2168,11 @@ textarea:focus-visible {
 .group-preview {
   height: 67px;
   border: 1px solid #e8e9eb;
-  background: #f9f9fa;
-  border-radius: 11px;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px;
   margin: 8px 0 22px;
-}
-.group-preview > i {
-  width: 10px;
-  height: 42px;
-  border-radius: 8px;
 }
 .group-preview > span {
   display: flex;
@@ -2383,16 +2259,12 @@ textarea:focus-visible {
   overflow: hidden;
   min-height: 260px;
   padding: 62px max(30px, calc((100vw - 1040px) / 2));
-  color: white;
-  background: linear-gradient(125deg, #181d2a, #2a344b);
 }
 .public-hero h1 {
   font-size: 42px;
-  letter-spacing: -2px;
   margin: 12px 0 9px;
 }
 .public-hero p {
-  color: #c7cacf;
   font-size: 14px;
 }
 .globe-orbit {
@@ -2403,14 +2275,12 @@ textarea:focus-visible {
   height: 190px;
   border: 1px solid #75e5dc3b;
   border-radius: 50%;
-  display: flex;
   align-items: center;
   justify-content: center;
 }
 .globe-orbit svg {
   width: 56px;
   height: 56px;
-  color: #78c6de;
 }
 .globe-orbit i {
   position: absolute;
@@ -2584,12 +2454,10 @@ textarea:focus-visible {
   position: relative;
   width: 84px;
   height: 84px;
-  border-radius: 25px;
   background: linear-gradient(145deg, #d8eef5, #d4d6da);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #303b55;
   font-size: 22px;
   font-weight: 800;
   overflow: visible;
@@ -2598,7 +2466,6 @@ textarea:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 25px;
 }
 .profile-avatar i {
   position: absolute;
@@ -2629,17 +2496,10 @@ textarea:focus-visible {
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
   margin: 30px 0;
 }
 .profile-stats article {
-  height: 90px;
-  background: white;
-  border: 1px solid #e5e6e9;
-  border-radius: 14px;
-  padding: 18px;
   display: flex;
-  align-items: center;
   gap: 13px;
 }
 .profile-stats article > svg {
@@ -2650,25 +2510,9 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
 }
-.profile-stats b {
-  font-size: 20px;
-}
-.profile-stats small {
-  font-size: 12px;
-  color: #8a8f9a;
-  margin-top: 2px;
-}
 .profile-grid {
   display: grid;
   grid-template-columns: 1.4fr 0.8fr;
-  gap: 12px;
-}
-.profile-card,
-.account-card {
-  background: white;
-  border: 1px solid #e5e6e9;
-  border-radius: 16px;
-  padding: 26px;
 }
 .profile-card > header {
   display: flex;
@@ -2722,7 +2566,6 @@ textarea:focus-visible {
 }
 .account-card > div > svg {
   width: 17px;
-  color: #197a97;
 }
 .account-card > div > span {
   display: flex;
@@ -2978,10 +2821,6 @@ textarea:focus-visible {
   font-size: 12px;
   margin-top: 4px;
 }
-.social {
-  gap: 8px;
-  font-size: 12.5px;
-}
 .social b {
   font-size: 14px;
 }
@@ -2996,7 +2835,6 @@ textarea:focus-visible {
     position: fixed;
     right: 12px;
     left: 12px;
-    top: 66px;
     width: auto;
   }
   .social span {
@@ -3008,7 +2846,6 @@ textarea:focus-visible {
   margin: 27px 0 0;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
   color: var(--ink);
   padding: 17px 18px;
   display: flex;
@@ -3079,7 +2916,7 @@ textarea:focus-visible {
 .friend-profile-link {
   flex: 1;
   min-width: 0;
-  margin: 0 !important;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -3192,7 +3029,6 @@ textarea:focus-visible {
   min-width: 205px;
   padding: 13px 15px;
   border: 1px solid #ffffff24;
-  background: #ffffff0e;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -3207,14 +3043,11 @@ textarea:focus-visible {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #54c0e1;
-  box-shadow: 0 0 0 5px #54e1d51a;
 }
 .shared-ribbon b {
   font-size: 13px;
 }
 .shared-ribbon small {
-  color: #b0b3bb;
   font-size: 11px;
 }
 .friend-hero-loading {
@@ -3380,24 +3213,11 @@ textarea:focus-visible {
 
 @media (max-width: 760px) {
   .friend-calendar-wrap {
-    width: calc(100% - 24px);
     margin-top: 20px;
   }
   .friend-profile-hero {
     align-items: flex-start;
-    padding: 22px;
     flex-wrap: wrap;
-  }
-  .friend-profile-avatar {
-    width: 66px;
-    height: 66px;
-    border-radius: 20px;
-  }
-  .friend-profile-avatar img {
-    border-radius: 20px;
-  }
-  .friend-profile-copy h1 {
-    font-size: 23px;
   }
   .shared-ribbon {
     width: 100%;
@@ -3405,24 +3225,13 @@ textarea:focus-visible {
   }
   .friend-calendar-toolbar {
     height: auto;
-    padding: 18px 2px;
-    align-items: flex-end;
-    gap: 13px;
   }
   .friend-calendar-toolbar .period {
     display: grid;
     grid-template-columns: auto auto auto;
   }
-  .friend-calendar-toolbar .period h2 {
-    grid-column: 1/4;
-    margin: 4px 0 0;
-  }
   .friend-calendar-surface {
     overflow-x: auto;
-  }
-  .friend-week,
-  .friend-month {
-    min-width: 720px;
   }
   .friend-calendar-note {
     align-items: flex-start;
@@ -3450,6 +3259,9 @@ textarea:focus-visible {
   outline-offset: -3px;
 }
 
+/* Compact mobile event composer */
+
+/* Keep Android WebView chrome fixed; scroll only the calendar surface. */
 @media (max-width: 600px) {
   :root {
     --safe-top: env(safe-area-inset-top, 0px);
@@ -3581,9 +3393,6 @@ textarea:focus-visible {
   .group-create-layout {
     min-height: calc(100dvh - 62px - var(--safe-top));
   }
-  .modal-scrim {
-    padding: calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom));
-  }
   .event-modal {
     max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
   }
@@ -3610,27 +3419,16 @@ textarea:focus-visible {
   }
   .month-grid > div {
     position: relative;
-    touch-action: manipulation;
   }
   .month-grid > div:active,
   .week-head > div:not(.tz):active {
     background: #f3f4f5;
   }
-}
-
-/* Compact mobile event composer */
-@media (max-width: 600px) {
-  .calendar-toolbar {
-    align-items: stretch;
-  }
   .period {
     grid-template-rows: auto 40px;
-    align-items: center;
   }
   .period h1 {
-    grid-column: 1/4;
-    grid-row: 1;
-    margin: 0 0 8px;
+    order: initial;
     align-self: center;
   }
   .period .today,
@@ -3639,7 +3437,6 @@ textarea:focus-visible {
     margin: 0;
   }
   .toolbar-actions {
-    height: 40px;
     align-self: end;
     align-items: center;
   }
@@ -3724,7 +3521,7 @@ textarea:focus-visible {
   .time-row input[type="time"] {
     grid-column: auto;
     height: 35px;
-    padding: 5px 6px !important;
+    padding: 5px 6px;
     font-size: 13px;
   }
   .time-row span {
@@ -3777,10 +3574,6 @@ textarea:focus-visible {
   .event-modal footer button {
     min-height: 40px;
   }
-}
-
-/* Keep Android WebView chrome fixed; scroll only the calendar surface. */
-@media (max-width: 600px) {
   .app-shell {
     position: fixed;
     inset: 0;
@@ -3844,9 +3637,6 @@ textarea:focus-visible {
   }
   .month-grid {
     flex: 1 0 auto;
-  }
-  .month-grid > div {
-    touch-action: pan-y;
   }
   .workspace > .people-page {
     flex: 1 1 auto;
@@ -4173,7 +3963,7 @@ textarea:focus-visible {
     overflow-wrap: anywhere;
   }
   .member-actions {
-    position: static !important;
+    position: static;
     width: calc(100% - 45px);
     margin-left: 45px;
     opacity: 1;
@@ -4268,6 +4058,7 @@ textarea:focus-visible {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
+  /* iPhone Safari는 16px보다 작은 입력칸을 누르면 화면을 확대한다. 더 구체적인 입력칸 글자 크기보다 이겨야 해서 !important */
   input,
   select,
   textarea {
@@ -4282,7 +4073,6 @@ textarea:focus-visible {
     padding: 9px 12px;
     align-items: center;
     gap: 8px;
-    background: #f7f8f9;
   }
   .period {
     display: grid;
@@ -4357,6 +4147,7 @@ textarea:focus-visible {
     background: #fff;
   }
   .month-grid > div {
+    touch-action: pan-y;
     padding: 6px 3px;
     border-left-color: #eff0f2;
     border-bottom-color: #e6e7e9;
@@ -4377,7 +4168,6 @@ textarea:focus-visible {
   .month-grid .today-cell.sunday > b {
     color: #fff;
     border-radius: 50%;
-    box-shadow: none;
   }
   .month-grid .outside {
     background: #fbfbfb;
@@ -4681,19 +4471,13 @@ textarea:focus-visible {
     flex-direction: column;
   }
 }
-@container (max-height:150px) {
-}
 /* 제목·설명과 겹칠 만큼 창이 낮거나 좁으면 그림을 숨깁니다. */
 
 .mobile-brand .brand-mark {
   width: 38px;
   height: 38px;
 }
-.login-story .brand {
-  color: #fff;
-}
 .login-story .brand-mark {
-  background: #ffffff26;
   color: #eff0f2;
 }
 .login-panel {
@@ -4755,8 +4539,6 @@ textarea:focus-visible {
     background: #fff;
     border-color: var(--line);
   }
-}
-@media (max-width: 600px) {
   .calendar-toolbar > .period {
     grid-template-rows: auto;
   }
@@ -4818,9 +4600,6 @@ textarea:focus-visible {
   font-size: 15px;
   color: var(--ink-2);
 } /* 월간 일정 칩: 주간 뷰 블록처럼 옅은 일정 색 위에 왼쪽 색 막대. 모바일은 꽉 찬 색 칩. */
-.month-grid button.month-event {
-  --c: var(--blue);
-}
 @media (min-width: 601px) {
   .month-grid button.month-event {
     height: 24px;
@@ -4903,14 +4682,6 @@ button.social.google {
   height: 14px;
   font-size: 8px;
   box-shadow: none;
-}
-@media (max-width: 600px) {
-  .owner-avatar {
-    display: none !important;
-  }
-  .event-block.with-owner {
-    padding-right: 2px;
-  }
 } /* 대화창 마무리: 키보드로도 멤버 관리 버튼이 보이게,모바일 일정 모달의 시간칸·제목줄 */
 .member-list article:focus-within .member-actions {
   opacity: 1;
@@ -4924,11 +4695,18 @@ button.social.google {
   outline: 0;
 }
 @media (max-width: 600px) {
+  /* 휴대폰 월간 칩에서는 작은 얼굴을 숨긴다. .month-grid 안의 더 구체적인 규칙보다 이겨야 해서 !important */
+  .owner-avatar {
+    display: none !important;
+  }
+  .event-block.with-owner {
+    padding-right: 2px;
+  }
   .event-modal .time-row {
     grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
   } /* 휴대폰에서는 칸을 누르면 날짜·시간 선택기가 열리므로,폭을 잡아먹는 아이콘을 숨겨 값이 잘리지 않게 한다. */
   .event-modal .time-row input {
-    padding: 5px 8px !important;
+    padding: 5px 8px;
   }
   .event-modal .time-row input::-webkit-calendar-picker-indicator {
     display: none;
@@ -5026,20 +4804,16 @@ button.social.google {
 }
 .picked {
   border: 1px solid var(--line);
-  border-radius: 16px;
-  background: #f7f7f8;
   padding: 18px 18px 16px;
   margin-bottom: 24px;
   scroll-margin: 12px;
 }
 .picked.all {
   border-color: #bae0eb;
-  background: linear-gradient(135deg, #e2f2f6, #eff0f2);
 }
 .picked > p {
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--teal-strong);
 }
 .picked h3 {
   margin: 5px 0 13px;
@@ -5171,8 +4945,6 @@ button.social.google {
 .map-track {
   position: relative;
   height: 28px;
-  border-radius: 8px;
-  background: var(--line-soft);
 }
 .seg {
   position: absolute;
@@ -5181,23 +4953,12 @@ button.social.google {
   min-width: 6px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
   background: rgb(19 163 158 / calc(0.14 + var(--share) * 0.4));
   cursor: pointer;
   transition: filter 0.15s;
 } /* 그라데이션을 구간마다 새로 칠하지 않고 하루 전체 폭에 한 번 깔아,짧은 구간도 그 시각의 색을 그대로 보여준다. */
-.seg.all {
-  background: linear-gradient(90deg, #1d8fb2, #1da1e3) calc(var(--l) / max(1 - var(--w), 0.001) * 100%) 0 /
-    calc(100% / var(--w)) 100% no-repeat;
-}
 .seg:hover {
   filter: brightness(0.93);
-}
-.seg.on {
-  z-index: 1;
-  box-shadow:
-    0 0 0 2px #fff,
-    0 0 0 4px var(--ink);
 }
 .seg:focus-visible {
   outline: 2px solid var(--blue);
@@ -5221,9 +4982,6 @@ button.social.google {
   width: 18px;
   height: 10px;
   border-radius: 3px;
-}
-.map-legend i.all {
-  background: linear-gradient(90deg, #1d8fb2, #1da1e3);
 }
 .map-legend i.some {
   background: rgb(19 163 158/0.34);
@@ -5305,9 +5063,6 @@ button.social.google {
   border-color: var(--line);
   border-radius: 8px;
 }
-.face-stack {
-  isolation: isolate;
-}
 .face-stack span {
   border-radius: 6px;
   mix-blend-mode: multiply;
@@ -5339,6 +5094,7 @@ button.social.google {
   background: var(--overlap);
 }
 .seg.on {
+  z-index: 1;
   box-shadow:
     0 0 0 2px #fff,
     0 0 0 3.5px var(--ink);
@@ -5357,6 +5113,7 @@ button.social.google {
   border-radius: 3px;
 }
 .month-grid button.month-event {
+  --c: var(--blue);
   background: color-mix(in srgb, var(--c) 22%, transparent);
   box-shadow: none;
   mix-blend-mode: multiply;
@@ -5735,7 +5492,6 @@ button.social.google {
 .week-calendar .event-block small {
   color: rgb(255 255 255/0.82);
   font-size: 11px;
-  white-space: normal;
   margin-top: 3px;
 }
 .week-calendar .event-block:hover {
