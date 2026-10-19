@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calendarDays, clockMinutes, zonedClock, zonedLabel } from "./zoned-time.ts";
+import { calendarDays, clockMinutes, offsetLabel, zonedClock, zonedLabel } from "./zoned-time.ts";
 
 test("같은 순간을 보는 사람의 시간대로 읽는다", () => {
   // 유럽에서 만든 오후 2시 비공개 일정 = UTC 12시 = 한국 밤 9시
@@ -29,4 +29,11 @@ test("기간의 날짜를 양 끝 포함해 나열하고 요일은 시간대와 
     ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"],
   );
   assert.equal(zonedLabel(days[2].noon, { weekday: "short" }, "UTC"), "일");
+});
+
+test("주간 보기 머리의 시간대 표시는 기기 시간대를 따른다", () => {
+  assert.equal(offsetLabel(new Date("2026-10-19T12:00:00Z"), "Asia/Seoul"), "GMT+9");
+  assert.equal(offsetLabel(new Date("2026-10-19T12:00:00Z"), "Europe/Berlin"), "GMT+2");
+  assert.equal(offsetLabel(new Date("2026-12-19T12:00:00Z"), "Europe/Berlin"), "GMT+1");
+  assert.equal(offsetLabel(new Date("2026-12-19T12:00:00Z"), "UTC"), "GMT+0");
 });
