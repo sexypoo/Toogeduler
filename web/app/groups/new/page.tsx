@@ -1,4 +1,5 @@
 "use client";
+import { DEFAULT_GROUP_COLOR, EVENT_COLORS } from "@/lib/colors";
 import { BrandMark } from "@/components/brand-mark";
 
 import { useEffect, useState } from "react";
@@ -7,12 +8,10 @@ import { ArrowLeft, Check, Copy, Link2, UsersRound } from "lucide-react";
 import { api, token } from "@/lib/api";
 import type { Group } from "@/lib/types";
 
-const COLORS = ["#19B7B1", "#168CF2", "#8B6FF7", "#F0648C", "#F29E38"];
-
 export default function NewGroupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [color, setColor] = useState(COLORS[0]);
+  const [color, setColor] = useState(DEFAULT_GROUP_COLOR);
   const [group, setGroup] = useState<Group | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,7 +118,7 @@ export default function NewGroupPage() {
             <fieldset>
               <legend>그룹 색상</legend>
               <div className="large-color-picker">
-                {COLORS.map((c) => (
+                {EVENT_COLORS.map((c) => (
                   <button
                     type="button"
                     aria-label={`${c} 색상`}

@@ -44,3 +44,11 @@ export function calendarDays(from: string, to: string) {
   }
   return days;
 }
+
+/** 주간 보기 머리에 쓰는 기기 시간대 표시. 예) 한국 "GMT+9", 독일 여름 "GMT+2" */
+export function offsetLabel(at: Date = new Date(), zone?: string) {
+  const part = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "shortOffset" })
+    .formatToParts(at)
+    .find((p) => p.type === "timeZoneName");
+  return part?.value === "GMT" ? "GMT+0" : (part?.value ?? "");
+}

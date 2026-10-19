@@ -1,4 +1,5 @@
 "use client";
+import { offsetLabel } from "@/lib/zoned-time";
 import { BrandMark } from "@/components/brand-mark";
 
 import { useEffect, useMemo, useState } from "react";
@@ -202,7 +203,9 @@ function FriendWeek({
   return (
     <div className="week-calendar friend-week">
       <div className="week-head">
-        <div className="tz">GMT+9</div>
+        <div className="tz" suppressHydrationWarning>
+          {offsetLabel()}
+        </div>
         {days.map((day) => (
           <div key={day.toISOString()} className={isToday(day) ? "today-col" : ""}>
             <span>{format(day, "EEE", { locale: ko })}</span>

@@ -5070,14 +5070,12 @@ button.social.google {
 .faces {
   display: flex;
   flex: none;
-  padding-left: 8px;
+  gap: 3px;
 }
 .faces i {
   width: 28px;
   height: 28px;
-  margin-left: -8px;
-  border-radius: 9px;
-  opacity: 0.88;
+  border-radius: 7px;
   color: #fff;
   font-style: normal;
   font-size: 12px;
@@ -5301,11 +5299,6 @@ button.social.google {
 .avatar-stack i,
 .people-strip i {
   border-radius: 4px;
-}
-.faces i {
-  border-radius: 7px;
-  mix-blend-mode: multiply;
-  opacity: 1;
 }
 .people-strip {
   background: #fff;
@@ -5996,6 +5989,11 @@ button.social.google {
 }
 .faces i.must {
   outline: 1.5px solid var(--ink);
+  outline-offset: 1px;
+}
+.faces i.more {
+  background: var(--line-soft);
+  color: var(--ink-2);
 }
 @media (max-width: 600px) {
   .must-chips {
