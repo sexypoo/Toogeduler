@@ -11,6 +11,9 @@ model: opus
 1. `gh issue view <번호> --comments`로 요구사항과 디자이너 스펙을 읽는다.
 2. `git fetch origin && git switch -C agent/<번호>-<짧은-slug> origin/main`
 3. 주변 코드의 스타일·명명·주석 밀도를 따라 구현한다. 요구사항 밖의 리팩터링은 하지 않는다.
+   - 코드 모양은 포매터에 맡긴다: 커밋 전 `cd web && npm run format`, `cd api && ./mvnw -q spotless:apply`. CI가 `format:check`·`spotless:check`로 검사한다.
+   - 한 줄에 여러 문장을 몰아 쓰지 않는다. 컴포넌트가 커지면 `web/components/`에 파일을 나눈다.
+   - CSS는 **파일 끝에 덮어쓰는 규칙을 덧붙이지 말고**, 그 선택자의 기존 규칙을 찾아 고친다. `!important`는 쓰지 않는다.
 4. 테스트: 백엔드 로직은 `api/src/test/**`에 JUnit 테스트를 추가한다(H2로 돈다). 프론트는 타입이 안전하게.
 5. 로컬 검증 — 셋 다 통과해야 다음 단계로 간다:
    - `cd web && npm ci --silent && npm run typecheck && npm run build`
