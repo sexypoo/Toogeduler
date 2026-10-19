@@ -16,7 +16,7 @@ public class AvailabilityController {
     Clock clock=Clock.systemUTC();
     public record Slot(OffsetDateTime startAt,OffsetDateTime endAt,int availableCount,int totalCount,List<String>availablePeople,boolean everyoneAvailable){}
     @GetMapping List<Slot> find(Authentication auth,@PathVariable Long groupId,@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(defaultValue="09:00")LocalTime dayStart,@RequestParam(defaultValue="22:00")LocalTime dayEnd,@RequestParam(defaultValue="60")int minMinutes,@RequestParam(defaultValue="Asia/Seoul")String timeZone){
-        List<Slot> slots=slots(auth,groupId,from,to,dayStart,dayEnd,minMinutes,minMinutes,timeZone);
+        List<Slot> slots=slots(auth,groupId,from,to,dayStart,dayEnd,minMinutes,minMinutes,timeZone,List.of());
         Comparator<Slot> order=Comparator.comparing(Slot::availableCount,Comparator.reverseOrder()).thenComparing(Slot::startAt);
         List<Slot> result=new ArrayList<>(slots.stream().filter(Slot::everyoneAvailable).sorted(order).limit(30).toList());
         result.addAll(slots.stream().filter(s->!s.everyoneAvailable()).sorted(order).limit(10).toList());
@@ -26,10 +26,11 @@ public class AvailabilityController {
     /**
      * 기간 전체의 빈 시간을 "같은 사람들이 계속 되는 구간"으로 합쳐 시간순으로 돌려준다.
      * 30분 간격으로 겹쳐 잘린 후보 대신 하루에 몇 개의 덩어리만 오므로, 화면이 기간 전체를 한 번에 그릴 수 있다.
+     * required(필수 참석자 id)를 주면 그 사람들이 모두 되는 구간만 남긴다. 그룹 멤버가 아닌 id가 섞이면 400.
      */
-    @GetMapping("/blocks") List<Slot> blocks(Authentication auth,@PathVariable Long groupId,@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(defaultValue="09:00")LocalTime dayStart,@RequestParam(defaultValue="22:00")LocalTime dayEnd,@RequestParam(defaultValue="60")int minMinutes,@RequestParam(defaultValue="Asia/Seoul")String timeZone){
+    @GetMapping("/blocks") List<Slot> blocks(Authentication auth,@PathVariable Long groupId,@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(defaultValue="09:00")LocalTime dayStart,@RequestParam(defaultValue="22:00")LocalTime dayEnd,@RequestParam(defaultValue="60")int minMinutes,@RequestParam(defaultValue="Asia/Seoul")String timeZone,@RequestParam(required=false)List<Long> required){
         List<Slot> blocks=new ArrayList<>();
-        for(Slot step:slots(auth,groupId,from,to,dayStart,dayEnd,30,minMinutes,timeZone)){
+        for(Slot step:slots(auth,groupId,from,to,dayStart,dayEnd,30,minMinutes,timeZone,required==null?List.of():required)){
             Slot last=blocks.isEmpty()?null:blocks.getLast();
             if(last!=null&&last.endAt().isEqual(step.startAt())&&last.availablePeople().equals(step.availablePeople()))blocks.set(blocks.size()-1,new Slot(last.startAt(),step.endAt(),last.availableCount(),last.totalCount(),last.availablePeople(),last.everyoneAvailable()));
             else blocks.add(step);
@@ -37,12 +38,12 @@ public class AvailabilityController {
         return blocks.stream().filter(b->Duration.between(b.startAt(),b.endAt()).toMinutes()>=minMinutes).toList();
     }
 
-    /** 각 날짜의 [dayStart, dayEnd) 안에서 stepMinutes 길이의 구간마다 비어 있는 멤버를 계산한다. 지난 시각과 아무도 안 되는 구간은 뺀다. */
-    private List<Slot> slots(Authentication auth,Long groupId,LocalDate from,LocalDate to,LocalTime dayStart,LocalTime dayEnd,int stepMinutes,int minMinutes,String timeZone){
+    /** 각 날짜의 [dayStart, dayEnd) 안에서 stepMinutes 길이의 구간마다 비어 있는 멤버를 계산한다. 지난 시각, 아무도 안 되는 구간, 필수 멤버 중 누가 바쁜 구간은 뺀다. */
+    private List<Slot> slots(Authentication auth,Long groupId,LocalDate from,LocalDate to,LocalTime dayStart,LocalTime dayEnd,int stepMinutes,int minMinutes,String timeZone,List<Long> required){
         User current=ApiSupport.user(auth);groups.findById(groupId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"그룹을 찾을 수 없습니다."));if(!members.existsByGroupIdAndUserId(groupId,current.getId()))throw new ApiException(HttpStatus.FORBIDDEN,"그룹 멤버만 찾을 수 있습니다.");
         if(to.isBefore(from)||to.isAfter(from.plusMonths(2)))throw new ApiException(HttpStatus.BAD_REQUEST,"검색 기간은 최대 2개월입니다.");if(minMinutes<30||minMinutes>480)throw new ApiException(HttpStatus.BAD_REQUEST,"최소 시간은 30분에서 8시간 사이여야 합니다.");
-        ZoneId zone=ZoneId.of(timeZone);List<User> people=members.findByGroupId(groupId).stream().map(GroupMember::getUser).toList();OffsetDateTime rangeFrom=from.atStartOfDay(zone).toOffsetDateTime();OffsetDateTime rangeTo=to.plusDays(1).atStartOfDay(zone).toOffsetDateTime();List<EventController.EventRange> busy=events.busyEvents(people.stream().map(User::getId).toList(),rangeFrom,rangeTo).stream().flatMap(e->EventController.occurrenceRanges(e,rangeFrom,rangeTo).stream()).toList();List<Slot> slots=new ArrayList<>();
-        OffsetDateTime now=OffsetDateTime.now(clock);for(LocalDate date=from;!date.isAfter(to);date=date.plusDays(1)){OffsetDateTime cursor=date.atTime(dayStart).atZone(zone).toOffsetDateTime();OffsetDateTime limit=date.atTime(dayEnd).atZone(zone).toOffsetDateTime();while(!cursor.plusMinutes(stepMinutes).isAfter(limit)){OffsetDateTime slotStart=cursor;OffsetDateTime end=slotStart.plusMinutes(stepMinutes);if(slotStart.isBefore(now)){cursor=cursor.plusMinutes(30);continue;}List<User> free=new ArrayList<>();for(User p:people){boolean overlaps=busy.stream().anyMatch(e->e.ownerId().equals(p.getId())&&e.startAt().isBefore(end)&&e.endAt().isAfter(slotStart));if(!overlaps)free.add(p);}if(!free.isEmpty())slots.add(new Slot(slotStart,end,free.size(),people.size(),free.stream().map(User::getName).toList(),free.size()==people.size()));cursor=cursor.plusMinutes(30);}}
+        ZoneId zone=ZoneId.of(timeZone);List<User> people=members.findByGroupId(groupId).stream().map(GroupMember::getUser).toList();Set<Long> must=new HashSet<>(required);if(!people.stream().map(User::getId).toList().containsAll(must))throw new ApiException(HttpStatus.BAD_REQUEST,"그룹 멤버가 아닌 사람이 포함돼 있어요. 다시 골라주세요.");OffsetDateTime rangeFrom=from.atStartOfDay(zone).toOffsetDateTime();OffsetDateTime rangeTo=to.plusDays(1).atStartOfDay(zone).toOffsetDateTime();List<EventController.EventRange> busy=events.busyEvents(people.stream().map(User::getId).toList(),rangeFrom,rangeTo).stream().flatMap(e->EventController.occurrenceRanges(e,rangeFrom,rangeTo).stream()).toList();List<Slot> slots=new ArrayList<>();
+        OffsetDateTime now=OffsetDateTime.now(clock);for(LocalDate date=from;!date.isAfter(to);date=date.plusDays(1)){OffsetDateTime cursor=date.atTime(dayStart).atZone(zone).toOffsetDateTime();OffsetDateTime limit=date.atTime(dayEnd).atZone(zone).toOffsetDateTime();while(!cursor.plusMinutes(stepMinutes).isAfter(limit)){OffsetDateTime slotStart=cursor;OffsetDateTime end=slotStart.plusMinutes(stepMinutes);if(slotStart.isBefore(now)){cursor=cursor.plusMinutes(30);continue;}List<User> free=new ArrayList<>();for(User p:people){boolean overlaps=busy.stream().anyMatch(e->e.ownerId().equals(p.getId())&&e.startAt().isBefore(end)&&e.endAt().isAfter(slotStart));if(!overlaps)free.add(p);}if(!free.isEmpty()&&free.stream().map(User::getId).toList().containsAll(must))slots.add(new Slot(slotStart,end,free.size(),people.size(),free.stream().map(User::getName).toList(),free.size()==people.size()));cursor=cursor.plusMinutes(30);}}
         return slots;
     }
 }
