@@ -153,7 +153,7 @@ function AvailabilityPanel({group,meId,close,show,onPick}:{group:Group;meId?:num
      <span className={weekday==="일"?"map-day sun":weekday==="토"?"map-day sat":"map-day"}><b>{Number(day.slice(5,7))}.{Number(day.slice(8))}</b>{weekday}</span>
      <div className="map-track">{(byDay[day]??[]).map(b=>{const s=zonedClock(b.startAt,zone).minutes,e=zonedClock(b.endAt,zone).minutes||24*60;return <button type="button" key={b.startAt} className={`${b.everyoneAvailable?"seg all":!best?.everyoneAvailable&&b.availableCount===best?.availableCount?"seg top":"seg"}${picked===b?" on":""}`} style={{left:`${(s-dayStart)/span*100}%`,width:`${(e-s)/span*100}%`,["--share" as string]:b.availableCount/b.totalCount,["--l" as string]:(s-dayStart)/span,["--w" as string]:(e-s)/span}} aria-pressed={picked===b} aria-label={`${zonedLabel(b.startAt,{month:"long",day:"numeric"},zone)} ${range(b)}, ${who(b)}`} title={`${range(b)}, ${b.totalCount}명 중 ${b.availableCount}명`} onClick={()=>choose(b)}/>})}</div>
     </div>})}
-    <div className="map-legend">{best?.everyoneAvailable?<span><i className="all"/>모두 돼요</span>:best&&<span><i className="top"/>가장 많이 돼요 ({best.availableCount}명)</span>}<span><i className="some"/>일부만 돼요 (진할수록 많이)</span>{must>0&&<span>필수 {must}명이 모두 되는 시간만 보여요</span>}</div>
+    <div className="map-legend">{best?.everyoneAvailable?<span><i className="all"/>모두 돼요</span>:best&&<span><i className="top"/>가장 많이 돼요 ({best.availableCount}명)</span>}<span><i className="some"/>일부만 돼요 (진할수록 많이)</span>{must>0&&<span>필수 {must}명 모두 되는 시간만 보여요</span>}</div>
    </div>}
   </div>
  </aside></div>
@@ -167,6 +167,6 @@ function RequiredPicker({members,meId,value,onChange}:{members:Group["members"];
  return <div className="must-row" role="group" aria-labelledby="must-label">
   <div className="must-head"><span id="must-label">꼭 와야 하는 사람</span><small aria-live="polite">{picked}명 선택</small></div>
   <div className="must-chips">{shown.map(m=>{const on=value.includes(m.id);return <button type="button" key={m.id} className="must-chip" aria-pressed={on} onClick={()=>onChange(on?value.filter(id=>id!==m.id):[...value,m.id])} style={{["--c" as string]:personColor(m.id)}}><i aria-hidden="true">{m.name.slice(-1)}</i>{on&&<Check aria-hidden="true"/>}<b>{m.name}</b>{m.id===meId&&<em>(나)</em>}</button>})}
-   {members.length>limit&&<button type="button" className="must-more" onClick={()=>setOpen(o=>!o)}>{open?"접기":`더 보기 (${members.length-limit}명)`}</button>}</div>
+   {members.length>limit&&<button type="button" className="must-more" aria-expanded={open} onClick={()=>setOpen(o=>!o)}>{open?"접기":`더 보기 (${members.length-limit}명)`}</button>}</div>
  </div>
 }
