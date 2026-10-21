@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { api, token, ApiError } from "@/lib/api";
 import { cancelAllReminders } from "@/lib/native-reminders";
+import { clearBrowserPwaCaches } from "@/lib/pwa";
 import type { User, UserStats } from "@/lib/types";
 
 export default function MyPage() {
@@ -73,6 +74,7 @@ export default function MyPage() {
   }
   function logout() {
     cancelAllReminders();
+    clearBrowserPwaCaches();
     localStorage.removeItem("toogeduler_token");
     router.push("/login");
   }
@@ -83,6 +85,7 @@ export default function MyPage() {
     try {
       await api("/api/auth/me", { method: "DELETE", body: JSON.stringify({ password: deletePassword }) });
       cancelAllReminders();
+      clearBrowserPwaCaches();
       localStorage.removeItem("toogeduler_token");
       router.replace("/login?deleted=1");
     } catch (err) {
