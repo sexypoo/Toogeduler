@@ -1,6 +1,7 @@
 package app.toogeduler.repo;
 
 import app.toogeduler.domain.Event;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.*;
 import org.springframework.data.jpa.repository.*;
@@ -53,4 +54,14 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "select e from Event e where e.reminderMinutes is not null and ((e.recurrenceRule is not null and e.recurrenceRule <> '') or (e.startAt > :from and e.startAt <= :to))")
     List<Event> reminderCandidates(
             @Param("from") OffsetDateTime from, @Param("to") OffsetDateTime to);
+
+    /** 그룹이 1개 이상 연결된 일정 중 기간 안에 만든 것. 여러 그룹에 공유해도 한 번만 센다. */
+    @Query(
+            "select count(distinct e) from Event e join e.groups g where e.createdAt >= :from and e.createdAt < :to")
+    long countGroupEventsCreatedBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** 기간 안에 만든 그룹 일정이 1개 이상 연결된 그룹 수. */
+    @Query(
+            "select count(distinct g) from Event e join e.groups g where e.createdAt >= :from and e.createdAt < :to")
+    long countGroupsWithEventsCreatedBetween(@Param("from") Instant from, @Param("to") Instant to);
 }

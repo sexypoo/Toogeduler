@@ -117,6 +117,10 @@ NEXT_PUBLIC_SHOW_DEMO=false
 - 전체 공개 일정을 로그아웃 상태에서 열기
 - Railway 재배포 후 기존 데이터 유지
 
+## 8. 주간 지표 확인
+
+API는 매주 월요일 09:00(Asia/Seoul)에 지난 7일간의 사용량을 한 줄 로그로 남깁니다. Railway의 API 서비스 → **Deployments** 또는 **Observability → Logs**에서 `weekly-metrics`로 검색하면 `weekly-metrics from=… to=… newUsers=… newGroups=… joins=… groupEvents=… activeGroups=…` 형태의 줄이 나옵니다. `newUsers`는 새 가입자, `newGroups`는 새 그룹, `joins`는 그룹장 본인을 뺀 그룹 가입, `groupEvents`는 그룹이 1개 이상 연결된 새 일정(북극성 지표 근사치), `activeGroups`는 그 일정이 1개 이상 연결된 그룹 수입니다. 기간은 `from` 이상 `to` 미만이고 시각은 UTC로 찍힙니다. 로그에는 숫자만 있고 이름·이메일·일정 제목은 없습니다. 월요일 09:00에 API가 재배포 중이었다면 그 주 로그는 남지 않습니다.
+
 ## 공개 운영 전에 남은 필수 작업
 
 현재 구성으로 소규모 베타 배포는 가능하지만, 공개 운영 전에는 `docs/ROADMAP.md`의 아래 항목을 우선 처리합니다.
