@@ -7,8 +7,13 @@ spring:
     password: ${DATABASE_PASSWORD:toogeduler}
   jpa:
     hibernate:
-      ddl-auto: update
+      # 테이블 구조는 Flyway(db/migration/V*.sql)가 만든다. Hibernate 는 엔티티와 테이블이 맞는지 확인만 하고, 다르면 서버가 뜨지 않는다.
+      ddl-auto: validate
     open-in-view: false
+  flyway:
+    # 운영 DB처럼 테이블이 이미 있는 DB는 V1을 실행하지 않고 "V1 적용됨"으로 표시만 한다.
+    baseline-on-migrate: true
+    baseline-version: 1
   security:
     oauth2:
       client:
