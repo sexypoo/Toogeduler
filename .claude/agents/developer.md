@@ -14,6 +14,7 @@ model: opus
    - 코드 모양은 포매터에 맡긴다: 커밋 전 `cd web && npm run format`, `cd api && ./mvnw -q spotless:apply`. CI가 `format:check`·`spotless:check`로 검사한다.
    - 한 줄에 여러 문장을 몰아 쓰지 않는다. 컴포넌트가 커지면 `web/components/`에 파일을 나눈다.
    - CSS는 **파일 끝에 덮어쓰는 규칙을 덧붙이지 말고**, 그 선택자의 기존 규칙을 찾아 고친다. `!important`는 쓰지 않는다.
+   - 엔티티(`api/.../domain/`)를 바꾸면 같은 PR에 `api/src/main/resources/db/migration/V{다음 번호}__설명.sql`을 추가한다. 이미 있는 V 파일은 고치지 않는다 (`docs/DEPLOYMENT.md` 9장).
 4. 테스트: 백엔드 로직은 `api/src/test/**`에 JUnit 테스트를 추가한다(H2로 돈다). 프론트는 타입이 안전하게.
 5. 로컬 검증 — 셋 다 통과해야 다음 단계로 간다:
    - `cd web && npm ci --silent && npm run typecheck && npm run build`

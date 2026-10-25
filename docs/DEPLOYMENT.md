@@ -121,12 +121,22 @@ NEXT_PUBLIC_SHOW_DEMO=false
 
 API는 매주 월요일 09:00(Asia/Seoul)에 지난 7일간의 사용량을 한 줄 로그로 남깁니다. Railway의 API 서비스 → **Deployments** 또는 **Observability → Logs**에서 `weekly-metrics`로 검색하면 `weekly-metrics from=… to=… newUsers=… newGroups=… joins=… groupEvents=… activeGroups=…` 형태의 줄이 나옵니다. `newUsers`는 새 가입자, `newGroups`는 새 그룹, `joins`는 그룹장 본인을 뺀 그룹 가입, `groupEvents`는 그룹이 1개 이상 연결된 새 일정(북극성 지표 근사치), `activeGroups`는 그 일정이 1개 이상 연결된 그룹 수입니다. 기간은 `from` 이상 `to` 미만이고 시각은 UTC로 찍힙니다. 로그에는 숫자만 있고 이름·이메일·일정 제목은 없습니다. 월요일 09:00에 API가 재배포 중이었다면 그 주 로그는 남지 않습니다.
 
+## 9. DB 구조 바꾸기 (Flyway)
+
+테이블 구조는 `api/src/main/resources/db/migration/`의 SQL 파일이 정합니다. 서버가 시작할 때 Flyway가 아직 적용하지 않은 파일만 번호 순서대로 한 번씩 실행하고, DB 안의 `flyway_schema_history` 표에 기록합니다. Hibernate는 `ddl-auto: validate`라서 엔티티와 테이블이 맞는지 확인만 하고, 맞지 않으면 서버가 뜨지 않습니다.
+
+- 엔티티를 바꾸면(필드 추가·삭제, 길이·nullable 변경, enum 값 추가) 같은 PR에 `V{다음 번호}__설명.sql`을 추가합니다. 예: `V2__invite_expiry.sql`
+- enum 값을 추가하면 그 컬럼의 CHECK 제약도 SQL로 다시 겁니다. `validate`는 CHECK 제약을 보지 않습니다.
+- 이미 머지된 V 파일은 고치지 않습니다. Flyway가 체크섬이 바뀐 것을 보고 서버 시작을 막습니다.
+- `SchemaMigrationTest`가 테스트에서 Flyway → validate 순서를 그대로 재현하므로, SQL을 빠뜨리면 CI에서 먼저 실패합니다.
+- 운영에 V 파일이 처음 적용되는 PR은 머지 직전에 백업합니다. 터미널 탭 하나에서 `railway connect Postgres --tunnel-only --port 15432`, 다른 탭에서 `bash ~/Documents/toogeduler-backups/backup.sh`
+
+`V1__baseline.sql`은 2026-10-25 운영 구조를 그대로 옮긴 것입니다. 운영 DB는 이미 그 상태여서 `baseline-on-migrate`로 "V1 적용됨" 표시만 했고, V1은 빈 DB에서만 실행됩니다.
+
 ## 공개 운영 전에 남은 필수 작업
 
 현재 구성으로 소규모 베타 배포는 가능하지만, 공개 운영 전에는 `docs/ROADMAP.md`의 아래 항목을 우선 처리합니다.
 
-- `DB-001`: Flyway 마이그레이션
-- `DB-002`: PostgreSQL 백업·복원
 - `SEC-011`: JWT를 HttpOnly Secure 쿠키로 전환
 - `SEC-012`: 로그인 시도 제한
 - `INFRA-002`: 노출된 적 있는 OAuth 키 회전과 비밀값 관리
