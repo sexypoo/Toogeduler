@@ -18,6 +18,7 @@ import {
   remindersBlocked,
   syncReminders,
 } from "@/lib/native-reminders";
+import { clearBrowserPwaCaches } from "@/lib/pwa";
 import { shiftSeries } from "@/lib/time";
 import type { AppNotification, CalendarEvent, Group, Slot, User } from "@/lib/types";
 import {
@@ -207,6 +208,7 @@ export default function CalendarApp() {
   }
   function logout() {
     cancelAllReminders();
+    clearBrowserPwaCaches();
     localStorage.removeItem("toogeduler_token");
     router.push("/login");
   }
