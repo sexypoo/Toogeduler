@@ -35,11 +35,12 @@ export async function fetchInvitePreview(
   apiOrigin: string,
   token: string,
   fetchImpl: typeof fetch = fetch,
+  timeoutMs: number = PREVIEW_TIMEOUT_MS,
 ): Promise<InvitePreview | null> {
   try {
     const res = await fetchImpl(`${apiOrigin}/api/public/invites/${encodeURIComponent(token)}`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(PREVIEW_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (res.status !== 200) return null;
     const body = (await res.json()) as Partial<InvitePreview>;

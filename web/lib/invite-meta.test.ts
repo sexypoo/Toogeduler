@@ -58,7 +58,10 @@ test("응답이 늦으면 시간 초과로 null 이다", async () => {
     new Promise((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
     })) as typeof fetch;
+  // AbortSignal.timeout 타이머는 이벤트 루프를 붙잡지 않으므로, 기다리는 동안 ref 된 타이머를 따로 둡니다.
+  const keepAlive = setTimeout(() => {}, 1000);
   const started = Date.now();
-  assert.equal(await fetchInvitePreview(ORIGIN, "x", hang), null);
-  assert.ok(Date.now() - started < 3000);
+  assert.equal(await fetchInvitePreview(ORIGIN, "x", hang, 50), null);
+  clearTimeout(keepAlive);
+  assert.ok(Date.now() - started < 1000);
 });
