@@ -1,9 +1,10 @@
 "use client";
+import { InviteLink } from "@/components/calendar/invite-link";
 import { personColor } from "@/components/owner-avatar";
 import { api } from "@/lib/api";
 import type { Group, User } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
-import { Copy, LogOut, Trash2, X } from "lucide-react";
+import { LogOut, Trash2, X } from "lucide-react";
 
 export function GroupSettings({
   group,
@@ -49,22 +50,7 @@ export function GroupSettings({
             <X />
           </button>
         </header>
-        <section>
-          <label>초대 링크</label>
-          <div className="invite-field">
-            <input readOnly value={group.inviteUrl} />
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(group.inviteUrl);
-                show("초대 링크를 복사했어요.");
-              }}
-            >
-              <Copy />
-              복사
-            </button>
-          </div>
-          <p>모든 멤버가 이 링크로 새로운 사람을 초대할 수 있어요.</p>
-        </section>
+        <InviteLink group={group} owner={owner} show={show} reload={reload} />
         <section>
           <div className="settings-title">
             <label>멤버</label>

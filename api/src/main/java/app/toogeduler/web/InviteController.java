@@ -2,6 +2,7 @@ package app.toogeduler.web;
 
 import app.toogeduler.domain.Group;
 import app.toogeduler.repo.*;
+import java.time.Instant;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,16 +23,26 @@ public class InviteController {
     @GetMapping("/api/public/invites/{token}")
     @Transactional(readOnly = true)
     Map<String, Object> preview(@PathVariable String token) {
-        // 재발급(refresh)·내보내기로 바뀐 옛 토큰은 더 이상 어떤 그룹과도 맞지 않아 404 가 된다.
-        Group g =
-                groups.findByInviteToken(token)
-                        .orElseThrow(
-                                () -> new ApiException(HttpStatus.NOT_FOUND, "유효하지 않은 초대 링크입니다."));
+        Group g = usableInvite(groups, token);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("name", g.getName());
         out.put("color", g.getColor());
         out.put("memberCount", members.countByGroupId(g.getId()));
         out.put("ownerName", g.getOwner().getName());
         return out;
+    }
+
+    /**
+     * 미리보기와 가입(GroupController.join)이 함께 쓰는 토큰 확인. 재발급(refresh)·내보내기로 바뀐 옛 토큰은 더 이상 어떤 그룹과도 맞지 않아
+     * 404, 기간이 지난 토큰은 410 이다. 410 에는 그룹 정보를 싣지 않는다.
+     */
+    static Group usableInvite(GroupRepository groups, String token) {
+        Group g =
+                groups.findByInviteToken(token)
+                        .orElseThrow(
+                                () -> new ApiException(HttpStatus.NOT_FOUND, "유효하지 않은 초대 링크입니다."));
+        if (g.inviteExpired(Instant.now()))
+            throw new ApiException(HttpStatus.GONE, "초대 링크가 만료됐어요. 그룹장에게 새 링크를 요청하세요.");
+        return g;
     }
 }

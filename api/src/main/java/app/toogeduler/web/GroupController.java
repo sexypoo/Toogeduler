@@ -48,7 +48,7 @@ public class GroupController {
         g.setName(body.name());
         g.setColor(body.color() == null ? "#19B7B1" : body.color());
         g.setOwner(u);
-        g.setInviteToken(randomToken());
+        g.renewInvite(randomToken(), Instant.now());
         g = groups.save(g);
         GroupMember m = new GroupMember();
         m.setGroup(g);
@@ -62,10 +62,7 @@ public class GroupController {
     @Transactional
     Map<String, Object> join(Authentication auth, @PathVariable String token) {
         User u = ApiSupport.user(auth);
-        Group g =
-                groups.findByInviteToken(token)
-                        .orElseThrow(
-                                () -> new ApiException(HttpStatus.NOT_FOUND, "유효하지 않은 초대 링크입니다."));
+        Group g = InviteController.usableInvite(groups, token);
         if (!members.existsByGroupIdAndUserId(g.getId(), u.getId())) {
             List<GroupMember> existing = members.findByGroupId(g.getId());
             GroupMember m = new GroupMember();
@@ -89,13 +86,18 @@ public class GroupController {
         return view(g);
     }
 
+    /** 공유는 모든 멤버가 하지만, 재발급은 그룹장만 한다. 멤버가 누르면 그룹장이 공유해 둔 링크가 예고 없이 죽기 때문이다. */
     @PostMapping("/{id}/invite/refresh")
+    @Transactional
     Map<String, Object> refresh(Authentication auth, @PathVariable Long id) {
         User u = ApiSupport.user(auth);
-        Group g = memberGroup(id, u);
-        g.setInviteToken(randomToken());
+        Group g = ownerGroup(id, u);
+        g.renewInvite(randomToken(), Instant.now());
         groups.save(g);
-        return Map.of("inviteUrl", webUrl + "/invite/" + g.getInviteToken());
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("inviteUrl", webUrl + "/invite/" + g.getInviteToken());
+        out.put("inviteExpiresAt", g.getInviteExpiresAt());
+        return out;
     }
 
     @GetMapping("/{id}/events")
@@ -137,7 +139,7 @@ public class GroupController {
             throw new ApiException(HttpStatus.CONFLICT, "그룹장은 내보낼 수 없습니다.");
         members.findByGroupIdAndUserId(id, userId).ifPresent(members::delete);
         // 내보낸 사람이 갖고 있던 초대 링크로 다시 들어오지 못하게 링크를 새로 만든다. 남은 멤버는 설정 화면에서 새 링크를 볼 수 있다.
-        g.setInviteToken(randomToken());
+        g.renewInvite(randomToken(), Instant.now());
         groups.save(g);
     }
 
@@ -183,6 +185,7 @@ public class GroupController {
         out.put("ownerId", g.getOwner().getId());
         out.put("members", people);
         out.put("inviteUrl", webUrl + "/invite/" + g.getInviteToken());
+        out.put("inviteExpiresAt", g.getInviteExpiresAt());
         return out;
     }
 
