@@ -996,6 +996,17 @@ textarea:focus-visible {
 .empty-slots small {
   font-size: 12.5px;
 }
+.empty-slots.alone p {
+  font-weight: 700;
+  color: var(--ink);
+}
+.empty-slots.alone small {
+  display: block;
+  color: var(--muted);
+}
+.empty-slots .primary {
+  margin-top: 16px;
+}
 .center-state {
   min-height: 100vh;
   display: flex;
@@ -1273,6 +1284,10 @@ textarea:focus-visible {
 @media (max-width: 600px) {
   .top-actions .icon-btn {
     display: none;
+  }
+  .empty-slots .primary {
+    height: 44px;
+    padding: 0 20px;
   }
   .find-time {
     font-size: 0;

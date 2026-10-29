@@ -1,4 +1,5 @@
 "use client";
+import { InviteAlone } from "./invite-alone";
 import { fmtDate } from "./shared";
 import { personColor } from "@/components/owner-avatar";
 import { api } from "@/lib/api";
@@ -39,6 +40,8 @@ export function AvailabilityPanel({
   const [picked, setPicked] = useState<Slot | null>(null);
   const pickedRef = useRef<HTMLElement>(null);
   const [loading, setLoading] = useState(false);
+  // 나 혼자인 그룹은 찾아도 내 빈 시간만 나오므로, 검색하지 않고 초대 안내만 보여 준다.
+  const alone = group.members.length <= 1;
   async function search() {
     setLoading(true);
     const ids = required.filter((id) => group.members.some((m) => m.id === id));
@@ -56,7 +59,7 @@ export function AvailabilityPanel({
     }
   }
   useEffect(() => {
-    search();
+    if (!alone) search();
   }, []);
   const best = bestBlock(blocks);
   const dayStart = clockMinutes(searched.start),
@@ -121,192 +124,206 @@ export function AvailabilityPanel({
             <X />
           </button>
         </header>
-        <div className="availability-form">
-          <label>
-            기간
-            <span>
-              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-              <i>–</i>
-              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </span>
-          </label>
-          <div>
-            <label>
-              시간대
-              <span>
-                <input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-                <i>–</i>
-                <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-              </span>
-            </label>
-            <label>
-              최소 시간
-              <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
-                <option value={30}>30분</option>
-                <option value={60}>1시간</option>
-                <option value={90}>1시간 30분</option>
-                <option value={120}>2시간</option>
-              </select>
-            </label>
-          </div>
-          {group.members.length > 1 && (
-            <RequiredPicker members={group.members} meId={meId} value={required} onChange={setRequired} />
-          )}
-          <button className="primary full" onClick={search} disabled={loading}>
-            {loading ? "맞춰보는 중..." : "다시 찾기"}
-          </button>
-        </div>
-        <div className="overlap-results">
-          {!loading &&
-            blocks.length === 0 &&
-            (must ? (
-              <div className="empty-slots">
-                <Clock3 />
-                <p>필수 참석자가 모두 되는 시간이 없어요.</p>
-                <small>필수를 줄이거나 기간을 늘려보세요.</small>
-              </div>
-            ) : (
-              <div className="empty-slots">
-                <Clock3 />
-                <p>조건에 맞는 시간이 없어요.</p>
-                <small>기간을 늘리거나 최소 시간을 줄여보세요.</small>
-              </div>
-            ))}
-          {picked && (
-            <section ref={pickedRef} className={picked.everyoneAvailable ? "picked all" : "picked"} aria-live="polite">
-              <p>
-                {picked === best
-                  ? best.everyoneAvailable
-                    ? "모두 되는 가장 빠른 시간"
-                    : must
-                      ? "필수 모두 + 가장 많이 되는 시간"
-                      : "가장 많이 되는 시간"
-                  : zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "long" }, zone)}
-              </p>
-              <h3>
-                {picked === best && (
-                  <span>{zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "short" }, zone)} </span>
-                )}
-                {range(picked)}
-              </h3>
-              <div className="picked-people">
-                <span className="faces" aria-hidden="true">
-                  {/* 얼굴은 다섯까지만(필수 멤버 먼저), 나머지는 +N. 겹치지 않게 나란히 둔다. */}
-                  {(() => {
-                    const faces = people(picked.availablePeople).sort(
-                      (a, b) => Number(searched.required.includes(b.id)) - Number(searched.required.includes(a.id)),
-                    );
-                    return (
-                      <>
-                        {faces.slice(0, 5).map((m) => (
-                          <i
-                            key={m.id}
-                            className={searched.required.includes(m.id) ? "must" : undefined}
-                            style={{ background: personColor(m.id) }}
-                          >
-                            {m.name.slice(-1)}
-                          </i>
-                        ))}
-                        {faces.length > 5 && <i className="more">+{faces.length - 5}</i>}
-                      </>
-                    );
-                  })()}
+        {alone ? (
+          <InviteAlone group={group} show={show} />
+        ) : (
+          <>
+            <div className="availability-form">
+              <label>
+                기간
+                <span>
+                  <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                  <i>–</i>
+                  <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
                 </span>
-                <span>{who(picked)}</span>
+              </label>
+              <div>
+                <label>
+                  시간대
+                  <span>
+                    <input type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+                    <i>–</i>
+                    <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+                  </span>
+                </label>
+                <label>
+                  최소 시간
+                  <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
+                    <option value={30}>30분</option>
+                    <option value={60}>1시간</option>
+                    <option value={90}>1시간 30분</option>
+                    <option value={120}>2시간</option>
+                  </select>
+                </label>
               </div>
-              <div className="picked-actions">
-                <button type="button" className="primary" onClick={() => book(picked)}>
-                  <CalendarPlus />이 시간으로 잡기
-                </button>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "short" }, zone)} ${range(picked)}`,
-                    );
-                    show("시간을 복사했어요.");
-                  }}
-                  aria-label="이 시간 복사"
+              {group.members.length > 1 && (
+                <RequiredPicker members={group.members} meId={meId} value={required} onChange={setRequired} />
+              )}
+              <button className="primary full" onClick={search} disabled={loading}>
+                {loading ? "맞춰보는 중..." : "다시 찾기"}
+              </button>
+            </div>
+            <div className="overlap-results">
+              {!loading &&
+                blocks.length === 0 &&
+                (must ? (
+                  <div className="empty-slots">
+                    <Clock3 />
+                    <p>필수 참석자가 모두 되는 시간이 없어요.</p>
+                    <small>필수를 줄이거나 기간을 늘려보세요.</small>
+                  </div>
+                ) : (
+                  <div className="empty-slots">
+                    <Clock3 />
+                    <p>조건에 맞는 시간이 없어요.</p>
+                    <small>기간을 늘리거나 최소 시간을 줄여보세요.</small>
+                  </div>
+                ))}
+              {picked && (
+                <section
+                  ref={pickedRef}
+                  className={picked.everyoneAvailable ? "picked all" : "picked"}
+                  aria-live="polite"
                 >
-                  <Copy />
-                </button>
-              </div>
-            </section>
-          )}
-          {blocks.length > 0 && (
-            <div className="overlap-map" role="group" aria-label="날짜별로 되는 시간">
-              <div className="map-scale" aria-hidden="true">
-                <span />
-                <div>
-                  {ticks.map((m) => (
-                    <small key={m} style={{ left: `${((m - dayStart) / span) * 100}%` }}>
-                      {Math.floor(m / 60) % 12 || 12}
-                      {m / 60 >= 12 ? "pm" : "am"}
-                    </small>
-                  ))}
-                </div>
-              </div>
-              {calendarDays(searched.from, searched.to).map(({ day, noon }) => {
-                const weekday = zonedLabel(noon, { weekday: "short" }, "UTC");
-                return (
-                  <div className="map-row" key={day}>
-                    <span className={weekday === "일" ? "map-day sun" : weekday === "토" ? "map-day sat" : "map-day"}>
-                      <b>
-                        {Number(day.slice(5, 7))}.{Number(day.slice(8))}
-                      </b>
-                      {weekday}
-                    </span>
-                    <div className="map-track">
-                      {(byDay[day] ?? []).map((b) => {
-                        const s = zonedClock(b.startAt, zone).minutes,
-                          e = zonedClock(b.endAt, zone).minutes || 24 * 60;
-                        return (
-                          <button
-                            type="button"
-                            key={b.startAt}
-                            className={`${b.everyoneAvailable ? "seg all" : !best?.everyoneAvailable && b.availableCount === best?.availableCount ? "seg top" : "seg"}${picked === b ? " on" : ""}`}
-                            style={{
-                              left: `${((s - dayStart) / span) * 100}%`,
-                              width: `${((e - s) / span) * 100}%`,
-                              ["--share" as string]: b.availableCount / b.totalCount,
-                              ["--l" as string]: (s - dayStart) / span,
-                              ["--w" as string]: (e - s) / span,
-                            }}
-                            aria-pressed={picked === b}
-                            aria-label={`${zonedLabel(b.startAt, { month: "long", day: "numeric" }, zone)} ${range(b)}, ${who(b)}`}
-                            title={`${range(b)}, ${b.totalCount}명 중 ${b.availableCount}명`}
-                            onClick={() => choose(b)}
-                          />
+                  <p>
+                    {picked === best
+                      ? best.everyoneAvailable
+                        ? "모두 되는 가장 빠른 시간"
+                        : must
+                          ? "필수 모두 + 가장 많이 되는 시간"
+                          : "가장 많이 되는 시간"
+                      : zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "long" }, zone)}
+                  </p>
+                  <h3>
+                    {picked === best && (
+                      <span>
+                        {zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "short" }, zone)}{" "}
+                      </span>
+                    )}
+                    {range(picked)}
+                  </h3>
+                  <div className="picked-people">
+                    <span className="faces" aria-hidden="true">
+                      {/* 얼굴은 다섯까지만(필수 멤버 먼저), 나머지는 +N. 겹치지 않게 나란히 둔다. */}
+                      {(() => {
+                        const faces = people(picked.availablePeople).sort(
+                          (a, b) => Number(searched.required.includes(b.id)) - Number(searched.required.includes(a.id)),
                         );
-                      })}
+                        return (
+                          <>
+                            {faces.slice(0, 5).map((m) => (
+                              <i
+                                key={m.id}
+                                className={searched.required.includes(m.id) ? "must" : undefined}
+                                style={{ background: personColor(m.id) }}
+                              >
+                                {m.name.slice(-1)}
+                              </i>
+                            ))}
+                            {faces.length > 5 && <i className="more">+{faces.length - 5}</i>}
+                          </>
+                        );
+                      })()}
+                    </span>
+                    <span>{who(picked)}</span>
+                  </div>
+                  <div className="picked-actions">
+                    <button type="button" className="primary" onClick={() => book(picked)}>
+                      <CalendarPlus />이 시간으로 잡기
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `${zonedLabel(picked.startAt, { month: "long", day: "numeric", weekday: "short" }, zone)} ${range(picked)}`,
+                        );
+                        show("시간을 복사했어요.");
+                      }}
+                      aria-label="이 시간 복사"
+                    >
+                      <Copy />
+                    </button>
+                  </div>
+                </section>
+              )}
+              {blocks.length > 0 && (
+                <div className="overlap-map" role="group" aria-label="날짜별로 되는 시간">
+                  <div className="map-scale" aria-hidden="true">
+                    <span />
+                    <div>
+                      {ticks.map((m) => (
+                        <small key={m} style={{ left: `${((m - dayStart) / span) * 100}%` }}>
+                          {Math.floor(m / 60) % 12 || 12}
+                          {m / 60 >= 12 ? "pm" : "am"}
+                        </small>
+                      ))}
                     </div>
                   </div>
-                );
-              })}
-              <div className="map-legend">
-                {best?.everyoneAvailable ? (
-                  <span>
-                    <i className="all" />
-                    모두 돼요
-                  </span>
-                ) : (
-                  best && (
+                  {calendarDays(searched.from, searched.to).map(({ day, noon }) => {
+                    const weekday = zonedLabel(noon, { weekday: "short" }, "UTC");
+                    return (
+                      <div className="map-row" key={day}>
+                        <span
+                          className={weekday === "일" ? "map-day sun" : weekday === "토" ? "map-day sat" : "map-day"}
+                        >
+                          <b>
+                            {Number(day.slice(5, 7))}.{Number(day.slice(8))}
+                          </b>
+                          {weekday}
+                        </span>
+                        <div className="map-track">
+                          {(byDay[day] ?? []).map((b) => {
+                            const s = zonedClock(b.startAt, zone).minutes,
+                              e = zonedClock(b.endAt, zone).minutes || 24 * 60;
+                            return (
+                              <button
+                                type="button"
+                                key={b.startAt}
+                                className={`${b.everyoneAvailable ? "seg all" : !best?.everyoneAvailable && b.availableCount === best?.availableCount ? "seg top" : "seg"}${picked === b ? " on" : ""}`}
+                                style={{
+                                  left: `${((s - dayStart) / span) * 100}%`,
+                                  width: `${((e - s) / span) * 100}%`,
+                                  ["--share" as string]: b.availableCount / b.totalCount,
+                                  ["--l" as string]: (s - dayStart) / span,
+                                  ["--w" as string]: (e - s) / span,
+                                }}
+                                aria-pressed={picked === b}
+                                aria-label={`${zonedLabel(b.startAt, { month: "long", day: "numeric" }, zone)} ${range(b)}, ${who(b)}`}
+                                title={`${range(b)}, ${b.totalCount}명 중 ${b.availableCount}명`}
+                                onClick={() => choose(b)}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="map-legend">
+                    {best?.everyoneAvailable ? (
+                      <span>
+                        <i className="all" />
+                        모두 돼요
+                      </span>
+                    ) : (
+                      best && (
+                        <span>
+                          <i className="top" />
+                          가장 많이 돼요 ({best.availableCount}명)
+                        </span>
+                      )
+                    )}
                     <span>
-                      <i className="top" />
-                      가장 많이 돼요 ({best.availableCount}명)
+                      <i className="some" />
+                      일부만 돼요 (진할수록 많이)
                     </span>
-                  )
-                )}
-                <span>
-                  <i className="some" />
-                  일부만 돼요 (진할수록 많이)
-                </span>
-                {must > 0 && <span>필수 {must}명 모두 되는 시간만 보여요</span>}
-              </div>
+                    {must > 0 && <span>필수 {must}명 모두 되는 시간만 보여요</span>}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </aside>
     </div>
   );
