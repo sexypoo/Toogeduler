@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,7 +90,8 @@ class InviteExpiryTest {
     @Test
     void ownerRefreshKillsTheOldTokenAndExpiresTheNewOneInSevenDays() throws Exception {
         String old = group.getInviteToken();
-        Instant before = Instant.now();
+        // 만료 시각은 마이크로초로 잘려 저장되므로 하한도 같은 단위로 자른다.
+        Instant before = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         MvcResult result =
                 mvc.perform(

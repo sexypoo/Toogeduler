@@ -3,6 +3,7 @@ package app.toogeduler.domain;
 import jakarta.persistence.*;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import lombok.*;
 
 @Entity
@@ -36,10 +37,13 @@ public class Group {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
-    /** 초대 토큰을 새로 정하고 만료를 지금부터 INVITE_TTL 뒤로 둔다. 옛 토큰은 더 이상 어떤 그룹과도 맞지 않는다. */
+    /**
+     * 초대 토큰을 새로 정하고 만료를 지금부터 INVITE_TTL 뒤로 둔다. 옛 토큰은 더 이상 어떤 그룹과도 맞지 않는다. 만료 시각은 DB
+     * 컬럼(timestamp(6)) 정밀도인 마이크로초로 잘라, 응답에 실은 값과 다시 읽은 값이 같게 한다.
+     */
     public void renewInvite(String token, Instant now) {
         inviteToken = token;
-        inviteExpiresAt = now.plus(INVITE_TTL);
+        inviteExpiresAt = now.plus(INVITE_TTL).truncatedTo(ChronoUnit.MICROS);
     }
 
     public boolean inviteExpired(Instant now) {
