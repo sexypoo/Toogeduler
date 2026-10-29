@@ -8,7 +8,8 @@ import { startOAuth } from "@/lib/oauth";
 import type { Group } from "@/lib/types";
 // 링크만 있으면 누구나 보는 정보라 이름·색·멤버 수·그룹장 이름만 옵니다. 열기만 해서는 가입하지 않고, "참여하기"를 눌러야 POST 합니다.
 type Preview = { name: string; color: string; memberCount: number; ownerName: string };
-type Phase = "loading" | "ready" | "joining" | "joined" | "member" | "invalid" | "failed";
+// invalid(404)는 다른 링크로 바뀌었거나 없는 링크, expired(410)는 기간이 지난 링크입니다.
+type Phase = "loading" | "ready" | "joining" | "joined" | "member" | "invalid" | "expired" | "failed";
 export default function Invite() {
   const params = useParams<{ token: string }>(),
     router = useRouter(),
@@ -44,7 +45,8 @@ export default function Invite() {
         setPhase("member");
       } else setPhase("ready");
     } catch (e) {
-      setPhase(e instanceof ApiError && e.status === 404 ? "invalid" : "failed");
+      const status = e instanceof ApiError ? e.status : 0;
+      setPhase(status === 404 ? "invalid" : status === 410 ? "expired" : "failed");
     }
   }, [invite]);
   useEffect(() => {
@@ -81,6 +83,10 @@ export default function Invite() {
         router.replace("/login?session=expired");
         return;
       }
+      if (e instanceof ApiError && e.status === 410) {
+        setPhase("expired");
+        return;
+      }
       setJoinError(e instanceof Error ? e.message : "참여하지 못했어요. 잠시 후 다시 시도해주세요.");
       setPhase("ready");
     }
@@ -100,6 +106,19 @@ export default function Invite() {
           초대 링크를 확인해주세요
         </h1>
         <p>이 링크는 사용할 수 없어요. 그룹장에게 새 링크를 요청하세요.</p>
+        <button type="button" className="switch-auth" onClick={() => router.replace("/")}>
+          홈으로
+        </button>
+      </div>
+    );
+  // 만료된 링크는 미리보기가 오지 않으므로 그룹 이름·색을 보여주지 않고, 로그인/가입 버튼도 두지 않습니다.
+  else if (phase === "expired")
+    body = (
+      <div role="alert">
+        <h1 ref={focusTarget} tabIndex={-1}>
+          초대 링크가 만료됐어요
+        </h1>
+        <p>그룹장에게 새 링크를 요청하세요.</p>
         <button type="button" className="switch-auth" onClick={() => router.replace("/")}>
           홈으로
         </button>

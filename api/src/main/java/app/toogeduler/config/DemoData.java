@@ -35,7 +35,7 @@ public class DemoData {
             g.setName("주말 탐험대");
             g.setColor("#19B7B1");
             g.setOwner(minji);
-            g.setInviteToken(UUID.randomUUID().toString().replace("-", ""));
+            g.renewInvite(UUID.randomUUID().toString().replace("-", ""), Instant.now());
             g = groups.save(g);
             for (User u : List.of(minji, jun, sora)) {
                 GroupMember m = new GroupMember();

@@ -37,6 +37,8 @@ export type Group = {
   ownerId: number;
   members: (User & { role: "OWNER" | "MEMBER" })[];
   inviteUrl: string;
+  // 초대 링크 만료 시각(ISO). null 이면 만료 없음.
+  inviteExpiresAt: string | null;
 };
 export type Slot = {
   startAt: string;
