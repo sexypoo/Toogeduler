@@ -13,7 +13,11 @@ class NotificationServiceTest {
         NotificationRepository notifications = mock(NotificationRepository.class);
         EventRepository events = mock(EventRepository.class);
         NotificationService service =
-                new NotificationService(notifications, events, mock(GroupMemberRepository.class));
+                new NotificationService(
+                        notifications,
+                        events,
+                        mock(GroupMemberRepository.class),
+                        mock(PushService.class));
         User user = new User("user@toogeduler.app", "사용자", "hash");
         user.setId(1L);
         when(notifications.existsByUserIdAndDedupeKey(1L, "same-key")).thenReturn(true);

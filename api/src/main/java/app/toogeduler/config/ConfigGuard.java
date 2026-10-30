@@ -25,6 +25,7 @@ public class ConfigGuard {
     private final boolean seedDemo;
     private final String googleClientId;
     private final String kakaoClientId;
+    private final VapidKeys vapid;
 
     public ConfigGuard(
             @Value("${app.web-url}") String webUrl,
@@ -34,13 +35,15 @@ public class ConfigGuard {
             @Value("${spring.security.oauth2.client.registration.google.client-id}")
                     String googleClientId,
             @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
-                    String kakaoClientId) {
+                    String kakaoClientId,
+            VapidKeys vapid) {
         this.webUrl = webUrl;
         this.datasourceUrl = datasourceUrl;
         this.jwtSecret = jwtSecret;
         this.seedDemo = seedDemo;
         this.googleClientId = googleClientId;
         this.kakaoClientId = kakaoClientId;
+        this.vapid = vapid;
         verify();
     }
 
@@ -102,6 +105,9 @@ public class ConfigGuard {
             log.warn("GOOGLE_CLIENT_ID is not configured. Google login will fail.");
         if (kakaoClientId.startsWith("local-"))
             log.warn("KAKAO_CLIENT_ID is not configured. Kakao login will fail.");
+        if (!vapid.configured())
+            log.warn(
+                    "VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY or VAPID_SUBJECT is not configured. Web push notifications are disabled.");
         log.info("Production configuration verified for {}", webUrl);
     }
 }

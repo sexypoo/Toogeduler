@@ -18,6 +18,7 @@ class AccountServiceTest {
     private GroupMemberRepository members;
     private FriendshipRepository friendships;
     private NotificationRepository notifications;
+    private PushSubscriptionRepository pushSubscriptions;
     private GroupCleanupService groupCleanup;
     private AccountService service;
     private User leaving;
@@ -30,16 +31,25 @@ class AccountServiceTest {
         members = mock(GroupMemberRepository.class);
         friendships = mock(FriendshipRepository.class);
         notifications = mock(NotificationRepository.class);
+        pushSubscriptions = mock(PushSubscriptionRepository.class);
         // 실제 정리 순서(일정 분리 → 멤버 삭제 → 그룹 삭제)를 검증하기 위해 진짜 구현을 사용한다.
         groupCleanup = new GroupCleanupService(events, groups, members);
         service =
                 new AccountService(
-                        users, events, groups, members, friendships, notifications, groupCleanup);
+                        users,
+                        events,
+                        groups,
+                        members,
+                        friendships,
+                        notifications,
+                        pushSubscriptions,
+                        groupCleanup);
 
         leaving = new User("leaving@toogeduler.app", "떠나는사람", "hash");
         leaving.setId(1L);
         when(users.findById(1L)).thenReturn(Optional.of(leaving));
         when(notifications.findByUserId(1L)).thenReturn(List.of());
+        when(pushSubscriptions.findByUserId(1L)).thenReturn(List.of());
         when(friendships.findByRequesterIdOrReceiverId(1L, 1L)).thenReturn(List.of());
         when(members.findByUserId(1L)).thenReturn(List.of());
         when(events.findByOwnerId(1L)).thenReturn(List.of());
@@ -65,6 +75,20 @@ class AccountServiceTest {
         verify(notifications).deleteAll(List.of(note));
         verify(friendships).deleteAll(List.of(friend));
         verify(users).delete(leaving);
+    }
+
+    @Test
+    void deletesPushSubscriptionsBeforeTheAccount() {
+        PushSubscription phone = new PushSubscription();
+        phone.setUser(leaving);
+        phone.setEndpoint("https://fcm.googleapis.com/fcm/send/phone");
+        when(pushSubscriptions.findByUserId(1L)).thenReturn(List.of(phone));
+
+        service.deleteAccount(1L);
+
+        var order = inOrder(pushSubscriptions, users);
+        order.verify(pushSubscriptions).deleteAll(List.of(phone));
+        order.verify(users).delete(leaving);
     }
 
     @Test
