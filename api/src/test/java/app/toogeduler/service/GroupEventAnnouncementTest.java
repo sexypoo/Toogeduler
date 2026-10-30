@@ -15,7 +15,11 @@ class GroupEventAnnouncementTest {
         NotificationRepository notifications = mock(NotificationRepository.class);
         GroupMemberRepository members = mock(GroupMemberRepository.class);
         NotificationService service =
-                new NotificationService(notifications, mock(EventRepository.class), members);
+                new NotificationService(
+                        notifications,
+                        mock(EventRepository.class),
+                        members,
+                        mock(PushService.class));
         User minji = user(1L, "김민지"), jun = user(2L, "이준"), sora = user(3L, "박소라");
         Group weekend = group(10L, "주말 탐험대"), friends = group(11L, "소친친친");
         when(members.findByGroupId(10L))

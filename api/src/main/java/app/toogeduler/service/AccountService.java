@@ -25,14 +25,16 @@ public class AccountService {
     private final GroupMemberRepository members;
     private final FriendshipRepository friendships;
     private final NotificationRepository notifications;
+    private final PushSubscriptionRepository pushSubscriptions;
     private final GroupCleanupService groupCleanup;
 
     @Transactional
     public void deleteAccount(Long userId) {
         User user = users.findById(userId).orElseThrow();
 
-        // 1) 알림
+        // 1) 알림과 웹 푸시 구독
         notifications.deleteAll(notifications.findByUserId(userId));
+        pushSubscriptions.deleteAll(pushSubscriptions.findByUserId(userId));
 
         // 2) 친구 관계 (요청자·수신자 양쪽)
         friendships.deleteAll(friendships.findByRequesterIdOrReceiverId(userId, userId));

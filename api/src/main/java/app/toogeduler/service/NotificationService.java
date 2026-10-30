@@ -20,6 +20,7 @@ public class NotificationService {
     private final NotificationRepository notifications;
     private final EventRepository events;
     private final GroupMemberRepository members;
+    private final PushService pushes;
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter WHEN =
             DateTimeFormatter.ofPattern("M월 d일 (E) a h:mm", Locale.KOREAN);
@@ -41,6 +42,7 @@ public class NotificationService {
         n.setLink(link);
         n.setDedupeKey(dedupeKey);
         notifications.save(n);
+        pushes.sendAfterCommit(user, title, message, link);
     }
 
     @Scheduled(fixedDelay = 60000, initialDelay = 10000)
