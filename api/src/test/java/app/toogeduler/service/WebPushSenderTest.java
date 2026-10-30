@@ -2,47 +2,74 @@ package app.toogeduler.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.toogeduler.config.VapidKeys;
+import app.toogeduler.domain.PushSubscription;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.security.KeyPair;
-import java.security.spec.ECPrivateKeySpec;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 
 class WebPushSenderTest {
-    /** RFC 8291 부록 A 의 예시 값으로 암호화 결과가 바이트 단위까지 같은지 확인한다. */
+    /** 환경변수 형식(base64url 원시 키)의 VAPID 키를 읽어 표준 헤더가 붙은 암호화 요청을 만든다. */
     @Test
-    void encryptsTheRfc8291Example() throws Exception {
-        byte[] asPublic =
-                b64(
-                        "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8");
-        var publicKey = WebPushSender.publicKey(asPublic);
-        var privateKey =
-                KeyFactory.getInstance("EC")
-                        .generatePrivate(
-                                new ECPrivateKeySpec(
-                                        new BigInteger(
-                                                1,
-                                                b64("yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw")),
-                                        publicKey.getParams()));
+    void buildsAnEncryptedVapidRequestFromRawEnvironmentKeys() throws Exception {
+        KeyPair server = p256();
+        KeyPair browser = p256();
+        VapidKeys vapid =
+                new VapidKeys(
+                        b64(raw((ECPublicKey) server.getPublic())),
+                        b64(unsigned32(((ECPrivateKey) server.getPrivate()).getS())),
+                        "mailto:support@toogeduler.com");
+        PushSubscription subscription = new PushSubscription();
+        subscription.setEndpoint("https://fcm.googleapis.com/fcm/send/abc");
+        subscription.setP256dh(b64(raw((ECPublicKey) browser.getPublic())));
+        subscription.setAuth(b64(new byte[16]));
 
-        byte[] body =
-                WebPushSender.encrypt(
-                        "When I grow up, I want to be a watermelon"
-                                .getBytes(StandardCharsets.UTF_8),
-                        b64(
-                                "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4"),
-                        b64("BTBZMqHH6r4Tts7J_aSIgg"),
-                        new KeyPair(publicKey, privateKey),
-                        b64("DGv6ra1nlYgDCS1FRnbzlw"));
+        HttpRequest request =
+                new WebPushSender(vapid).request(subscription, "{\"title\":\"t\"}".getBytes());
 
-        assertThat(Base64.getUrlEncoder().withoutPadding().encodeToString(body))
-                .isEqualTo(
-                        "DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A_yl95bQpu6cVPTpK4Mqgkf1CXztLVBSt2Ks3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN");
+        assertThat(request.uri()).isEqualTo(URI.create("https://fcm.googleapis.com/fcm/send/abc"));
+        assertThat(request.method()).isEqualTo("POST");
+        assertThat(request.headers().firstValue("Content-Encoding")).contains("aes128gcm");
+        assertThat(request.headers().firstValue("TTL")).contains("86400");
+        assertThat(request.headers().firstValue("Authorization"))
+                .hasValueSatisfying(
+                        v ->
+                                assertThat(v)
+                                        .startsWith("vapid t=")
+                                        .endsWith(", k=" + vapid.getPublicKey()));
+        assertThat(request.bodyPublisher().orElseThrow().contentLength()).isPositive();
     }
 
-    private static byte[] b64(String s) {
-        return Base64.getUrlDecoder().decode(s);
+    private static KeyPair p256() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+        generator.initialize(new ECGenParameterSpec("secp256r1"));
+        return generator.generateKeyPair();
+    }
+
+    private static byte[] raw(ECPublicKey key) {
+        byte[] out = new byte[65];
+        out[0] = 4;
+        System.arraycopy(unsigned32(key.getW().getAffineX()), 0, out, 1, 32);
+        System.arraycopy(unsigned32(key.getW().getAffineY()), 0, out, 33, 32);
+        return out;
+    }
+
+    private static byte[] unsigned32(BigInteger n) {
+        byte[] bytes = n.toByteArray();
+        byte[] out = new byte[32];
+        int length = Math.min(bytes.length, 32);
+        System.arraycopy(bytes, bytes.length - length, out, 32 - length, length);
+        return out;
+    }
+
+    private static String b64(byte[] bytes) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
