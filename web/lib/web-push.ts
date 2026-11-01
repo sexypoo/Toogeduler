@@ -21,7 +21,8 @@ type PushManagerLike = {
 export type PushEnvironment = {
   // Capacitor.isNativePlatform() 결과. 앱 안에서는 로컬 알림을 쓰므로 이 행을 그리지 않습니다.
   native: boolean;
-  // 서비스 워커와 PushManager 가 모두 있을 때만 넘깁니다.
+  // 서비스 워커와 PushManager 가 모두 있을 때만 넘깁니다. 등록이 없으면 reject 해야 하며, 끝나지 않으면 "확인 중"에서 멈추므로
+  // 기다림이 있다면 settleWithin 으로 끝을 정해 둡니다.
   pushManager?: () => Promise<PushManagerLike>;
   notification?: {
     permission: NotificationPermission;
@@ -40,6 +41,14 @@ const SUBSCRIPTIONS_PATH = "/api/push/subscriptions";
 export function decodeBase64Url(value: string) {
   const base64 = (value + "=".repeat((4 - (value.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+// 정해진 시간 안에 끝나지 않으면 reject 합니다. 서비스 워커 등록이 실패하면 serviceWorker.ready 가 영영 끝나지 않기 때문입니다.
+export function settleWithin<T>(promise: Promise<T>, ms: number) {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
 }
 
 function supported(env: PushEnvironment) {

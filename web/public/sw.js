@@ -113,7 +113,13 @@ self.addEventListener("notificationclick", (event) => {
       const same = windows.find((w) => w.url === target);
       if (same) return same.focus();
       const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
-      if (open && "navigate" in open) return open.focus().then((w) => (w || open).navigate(target));
+      // 서비스 워커의 제어를 받지 않는 창이면 navigate 가 reject 되므로, 그때는 새 창으로 엽니다.
+      if (open && "navigate" in open) {
+        return open
+          .focus()
+          .then((w) => (w || open).navigate(target))
+          .catch(() => self.clients.openWindow(target));
+      }
       return self.clients.openWindow(target);
     }),
   );

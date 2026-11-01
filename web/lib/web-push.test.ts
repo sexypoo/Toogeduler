@@ -2,7 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
-import { decodeBase64Url, disablePush, enablePush, readPushState, unsubscribeOnLogout } from "./web-push.ts";
+import {
+  decodeBase64Url,
+  disablePush,
+  enablePush,
+  readPushState,
+  settleWithin,
+  unsubscribeOnLogout,
+} from "./web-push.ts";
 import type { PushEnvironment } from "./web-push.ts";
 
 const KEY = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
@@ -86,6 +93,23 @@ test("푸시 API 가 없으면 숨기고, iOS 브라우저 탭이면 홈 화면 
 test("공개키가 404 면 지원 안 됨으로 숨긴다", async () => {
   const { env } = fakeEnv({ fail: (c) => (c.method === "GET" ? 404 : undefined) });
   assert.equal((await readPushState(env)).status, "hidden");
+});
+
+test("서비스 워커 준비가 실패하면 숨긴다", async () => {
+  const { env } = fakeEnv();
+  env.pushManager = () => Promise.reject(new Error("등록 없음"));
+  assert.equal((await readPushState(env)).status, "hidden");
+});
+
+test("서비스 워커 준비가 끝나지 않아도 시간 제한 뒤 숨긴다", async () => {
+  const { env } = fakeEnv();
+  env.pushManager = () => settleWithin(new Promise<never>(() => {}), 10);
+  assert.equal((await readPushState(env)).status, "hidden");
+});
+
+test("시간 안에 끝나면 결과를 그대로 돌려준다", async () => {
+  assert.equal(await settleWithin(Promise.resolve(1), 10), 1);
+  await assert.rejects(settleWithin(Promise.reject(new Error("x")), 10), /x/);
 });
 
 test("브라우저에서 차단돼 있으면 차단 상태로 보여 준다", async () => {
@@ -173,4 +197,44 @@ test("서비스 워커는 payload 의 제목·내용을 그대로 띄우고 url 
   assert.equal(shown[0][1].body, payload.message);
   assert.equal(shown[0][1].tag, "/?group=7");
   assert.equal(shown[0][1].data.url, "/?group=7");
+});
+
+function notificationClick(windows: { url: string; navigate?: (url: string) => Promise<unknown> }[]) {
+  const source = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
+  const handlers: Record<string, (event: unknown) => void> = {};
+  const opened: string[] = [];
+  const clients = windows.map((w) => ({ ...w, focus: async () => null }));
+  const self = {
+    addEventListener: (type: string, fn: (event: unknown) => void) => (handlers[type] = fn),
+    location: { origin: "https://app.toogeduler.com" },
+    clients: {
+      matchAll: async () => clients,
+      openWindow: async (url: string) => opened.push(url),
+    },
+  };
+  runInNewContext(source, { self, URL, caches: {} });
+  let pending: Promise<unknown> | undefined;
+  handlers.notificationclick({
+    notification: { close: () => {}, data: { url: "/?group=7" } },
+    waitUntil: (p: Promise<unknown>) => (pending = p),
+  });
+  return { done: pending!, opened };
+}
+
+test("알림을 누르면 열린 창을 그 화면으로 이동시킨다", async () => {
+  const navigated: string[] = [];
+  const { done, opened } = notificationClick([
+    { url: "https://app.toogeduler.com/mypage", navigate: async (url) => navigated.push(url) },
+  ]);
+  await done;
+  assert.deepEqual(navigated, ["https://app.toogeduler.com/?group=7"]);
+  assert.deepEqual(opened, []);
+});
+
+test("제어받지 않는 창이라 이동이 실패하면 새 창으로 연다", async () => {
+  const { done, opened } = notificationClick([
+    { url: "https://app.toogeduler.com/mypage", navigate: () => Promise.reject(new TypeError("not controlled")) },
+  ]);
+  await done;
+  assert.deepEqual(opened, ["https://app.toogeduler.com/?group=7"]);
 });
