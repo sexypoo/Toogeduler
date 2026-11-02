@@ -40,6 +40,8 @@ export function GroupInfo({
       if (e instanceof ApiError && e.status === 400) setError(e.message);
       else if (e instanceof ApiError && e.status === 403) {
         // 그 사이 그룹장이 바뀌었으면 다시 불러와 이 구역을 감춥니다.
+        // 구역이 언마운트돼도 안내가 남도록 토스트로 알리고, 다시 불러오기 실패에 대비해 오류 문구도 둡니다.
+        show("그룹장만 바꿀 수 있어요.");
         setError("그룹장만 바꿀 수 있어요.");
         await reload().catch(() => undefined);
       } else if (e instanceof ApiError && e.status === 404) {
