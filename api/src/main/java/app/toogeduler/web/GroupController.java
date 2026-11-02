@@ -34,6 +34,13 @@ public class GroupController {
                     String name,
             @Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "색상 값이 올바르지 않습니다.") String color) {}
 
+    /** 부분 수정용. 보낸 필드만 GroupInput 과 같은 규칙으로 검사하고, 빠진 필드(null)는 그대로 둔다. */
+    public record GroupPatch(
+            @Pattern(regexp = "(?s).*\\S.*", message = "그룹 이름을 입력해주세요.")
+                    @Size(max = 40, message = "그룹 이름은 40자까지 입력할 수 있어요.")
+                    String name,
+            @Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "색상 값이 올바르지 않습니다.") String color) {}
+
     @GetMapping
     List<Map<String, Object>> mine(Authentication auth) {
         User u = ApiSupport.user(auth);
@@ -84,6 +91,20 @@ public class GroupController {
                                 + member.getUser().getId());
         }
         return view(g);
+    }
+
+    /** 이름·색상은 그룹장만 바꾼다. 멤버가 아닌 사람에게는 그룹이 있다는 것도 알리지 않도록 404 로 답한다. */
+    @PatchMapping("/{id}")
+    @Transactional
+    Map<String, Object> update(
+            Authentication auth, @PathVariable Long id, @Valid @RequestBody GroupPatch body) {
+        User u = ApiSupport.user(auth);
+        if (!members.existsByGroupIdAndUserId(id, u.getId()))
+            throw new ApiException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다.");
+        Group g = ownerGroup(id, u);
+        if (body.name() != null) g.setName(body.name().trim());
+        if (body.color() != null) g.setColor(body.color());
+        return view(groups.save(g));
     }
 
     /** 공유는 모든 멤버가 하지만, 재발급은 그룹장만 한다. 멤버가 누르면 그룹장이 공유해 둔 링크가 예고 없이 죽기 때문이다. */

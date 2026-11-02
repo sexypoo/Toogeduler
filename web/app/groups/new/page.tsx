@@ -1,6 +1,7 @@
 "use client";
-import { DEFAULT_GROUP_COLOR, EVENT_COLORS } from "@/lib/colors";
+import { DEFAULT_GROUP_COLOR } from "@/lib/colors";
 import { BrandMark } from "@/components/brand-mark";
+import { ColorPicker } from "@/components/color-picker";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -117,20 +118,7 @@ export default function NewGroupPage() {
             </label>
             <fieldset>
               <legend>그룹 색상</legend>
-              <div className="large-color-picker">
-                {EVENT_COLORS.map((c) => (
-                  <button
-                    type="button"
-                    aria-label={`${c} 색상`}
-                    key={c}
-                    className={color === c ? "selected" : ""}
-                    style={{ background: c }}
-                    onClick={() => setColor(c)}
-                  >
-                    {color === c && <Check />}
-                  </button>
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={setColor} />
             </fieldset>
             <div className="group-preview">
               <i style={{ background: color }} />
