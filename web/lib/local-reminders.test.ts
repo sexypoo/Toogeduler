@@ -63,7 +63,11 @@ test("매주 반복 일정은 14일 안의 회차마다 하나씩 예약된다",
 
 test("끝나는 날(UNTIL) 이후 회차의 알림은 예약하지 않는다", () => {
   // 9월 30일(수)부터 매주 수요일 오후 7시, 끝나는 날 10월 17일(토): 14일 창 안의 10월 14일 회차만 남고 21일 회차는 없다.
-  const series = event({ start: at(14, 19), recurrenceRule: "FREQ=WEEKLY;UNTIL=20261017", reminderMinutes: 30 });
+  const series = event({
+    start: at(14, 19),
+    recurrenceRule: "FREQ=WEEKLY;UNTIL=20261017T235959Z",
+    reminderMinutes: 30,
+  });
   series.startAt = new Date(2026, 8, 30, 19).toISOString();
   series.endAt = new Date(2026, 8, 30, 20).toISOString();
   assert.deepEqual(
@@ -72,18 +76,29 @@ test("끝나는 날(UNTIL) 이후 회차의 알림은 예약하지 않는다", (
   );
 });
 
-test("끝나는 날은 첫 회차의 오프셋 기준 그날 끝까지 포함한다", () => {
-  // 한국 시간 밤 11시 매일 일정, 끝나는 날 10월 21일: UTC로는 다음 날이 되는 10월 21일 회차도 울린다.
-  const series = event({ start: at(20, 12), recurrenceRule: "FREQ=DAILY;UNTIL=20261021" });
-  series.startAt = "2026-10-20T23:00:00+09:00";
-  series.endAt = "2026-10-21T00:00:00+09:00";
-  assert.deepEqual(
-    planReminders([series], ME, now).map((r) => r.link),
-    [
-      `/?event=10&at=${new Date("2026-10-20T23:00:00+09:00").toISOString()}`,
-      `/?event=10&at=${new Date("2026-10-21T23:00:00+09:00").toISOString()}`,
-    ],
-  );
+// 서버는 DB(timestamptz)에서 읽은 시각을 Z 오프셋으로 주고, UNTIL 은 작성자 기기의 그날 끝을 UTC 로 바꿔 저장한다.
+function storedDaily(seriesStartUtc: string, until: string) {
+  const series = event({ start: new Date(seriesStartUtc), recurrenceRule: `FREQ=DAILY;UNTIL=${until}` });
+  series.seriesStartAt = seriesStartUtc;
+  return planReminders([series], ME, now).map((r) => r.link.split("at=")[1]);
+}
+
+test("한국 시간 매일 오전 8시, 끝나는 날 10월 20일이면 18·19·20일 3회만 울린다", () => {
+  // 10월 20일 23:59:59 KST = 20261020T145959Z. 21일 오전 8시(20일 23:00Z)는 나오지 않는다.
+  assert.deepEqual(storedDaily("2026-10-17T23:00:00Z", "20261020T145959Z"), [
+    "2026-10-17T23:00:00.000Z",
+    "2026-10-18T23:00:00.000Z",
+    "2026-10-19T23:00:00.000Z",
+  ]);
+});
+
+test("음수 오프셋 저녁 일정은 UTC 로 다음 날이어도 끝나는 날 당일 회차가 울린다", () => {
+  // 태평양 시간(-07:00) 매일 오후 8시, 끝나는 날 10월 19일 = 20261020T065959Z. 19일 오후 8시(20일 03:00Z)까지 포함.
+  assert.deepEqual(storedDaily("2026-10-18T03:00:00Z", "20261020T065959Z"), [
+    "2026-10-18T03:00:00.000Z",
+    "2026-10-19T03:00:00.000Z",
+    "2026-10-20T03:00:00.000Z",
+  ]);
 });
 
 test("서버가 회차로 펼쳐 준 목록이어도 같은 회차를 두 번 예약하지 않는다", () => {

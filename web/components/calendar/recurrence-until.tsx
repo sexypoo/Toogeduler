@@ -1,17 +1,22 @@
 "use client";
+import { untilLimit } from "@/lib/local-reminders";
+import { format } from "date-fns";
 import type { Ref } from "react";
 
-// 반복 규칙 "FREQ=WEEKLY;UNTIL=20261220"을 반복 종류와 끝나는 날(yyyy-MM-dd)로 나누고 다시 합칩니다.
+// 반복 규칙 "FREQ=WEEKLY;UNTIL=20261220T145959Z"를 반복 종류와 끝나는 날(이 기기 로컬 날짜, yyyy-MM-dd)로 나누고 다시 합칩니다.
+// 끝나는 날은 이 기기 시간대의 그날 23:59:59 를 UTC 로 바꿔 저장해, 서버·다른 기기에서도 같은 순간까지 반복합니다.
 export function ruleFrequency(rule: string) {
   return rule.split(";").find((part) => part.startsWith("FREQ=")) || "";
 }
 export function ruleUntil(rule: string) {
-  const until = /(?:^|;)UNTIL=(\d{4})(\d{2})(\d{2})(?:;|$)/.exec(rule);
-  return until ? `${until[1]}-${until[2]}-${until[3]}` : "";
+  const until = untilLimit(rule);
+  return until ? format(until, "yyyy-MM-dd") : "";
 }
 export function buildRule(frequency: string, until: string) {
   if (!frequency) return "";
-  return until ? `${frequency};UNTIL=${until.replaceAll("-", "")}` : frequency;
+  if (!until) return frequency;
+  const endOfDay = new Date(`${until}T23:59:59`).toISOString();
+  return `${frequency};UNTIL=${endOfDay.slice(0, 19).replace(/[-:]/g, "")}Z`;
 }
 
 // 반복을 고른 일정에서만 보이는 "끝나는 날" 입력입니다. 비워 두면 끝없이 반복합니다.

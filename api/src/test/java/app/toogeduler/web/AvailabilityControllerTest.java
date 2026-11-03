@@ -189,9 +189,9 @@ class AvailabilityControllerTest {
         when(groups.findById(5L)).thenReturn(Optional.of(group));
         when(members.existsByGroupIdAndUserId(5L, 1L)).thenReturn(true);
         when(members.findByGroupId(5L)).thenReturn(List.of(member(group, me), member(group, sora)));
-        // 소라는 10월 7일(수)부터 매주 수요일 19–21시 동아리, 끝나는 날 10월 14일.
-        Event club = busy(sora, "2026-10-07T19:00:00+09:00", "2026-10-07T21:00:00+09:00");
-        club.setRecurrenceRule("FREQ=WEEKLY;UNTIL=20261014");
+        // 소라는 10월 7일(수)부터 매주 수요일 19–21시(한국 시간) 동아리, 끝나는 날 10월 14일. DB 처럼 UTC 로 둔다.
+        Event club = busy(sora, "2026-10-07T10:00:00Z", "2026-10-07T12:00:00Z");
+        club.setRecurrenceRule("FREQ=WEEKLY;UNTIL=20261014T145959Z");
         when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of(club));
         var auth = new UsernamePasswordAuthenticationToken(me, null, List.of());
 

@@ -68,23 +68,19 @@ function reminderId(eventId: number, start: Date) {
   return hash & 0x7fffffff || 1;
 }
 
-// "FREQ=WEEKLY;UNTIL=20261220"의 끝나는 날 다음 날 0시입니다. 서버처럼 첫 회차 시작 시각(ISO 문자열)의 오프셋 기준이고,
-// 이 시각부터 시작하는 회차는 만들지 않습니다. UNTIL 이 없으면 null(끝없이 반복).
-export function untilLimit(rule: string, seriesStartIso: string) {
-  const until = /(?:^|;)UNTIL=(\d{4})(\d{2})(\d{2})(?:;|$)/.exec(rule);
+// "FREQ=WEEKLY;UNTIL=20261220T145959Z"의 UNTIL 시각(RFC 5545 UTC 형식)입니다. 서버가 작성자 기기의 그날 끝을 UTC 로 바꿔 저장하므로
+// 이 시각보다 늦게 시작하는 회차는 만들지 않습니다. UNTIL 이 없으면 null(끝없이 반복).
+export function untilLimit(rule: string) {
+  const until = /(?:^|;)UNTIL=(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z(?:;|$)/.exec(rule);
   if (!until) return null;
-  const [year, month, day] = until.slice(1).map(Number);
-  const offset = /(Z|([+-])(\d{2}):?(\d{2}))$/.exec(seriesStartIso);
-  if (!offset) return new Date(year, month - 1, day + 1);
-  const offsetMinutes =
-    offset[1] === "Z" ? 0 : (offset[2] === "-" ? -1 : 1) * (Number(offset[3]) * 60 + Number(offset[4]));
-  return new Date(Date.UTC(year, month - 1, day + 1) - offsetMinutes * 60000);
+  const [year, month, day, hour, minute, second] = until.slice(1).map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
 }
 
 // 서버(EventController.occurrenceRanges)와 같은 규칙으로 회차 시작 시각을 펼칩니다. 매월은 앞 회차에서 한 달씩 이어 갑니다.
 function occurrenceStarts(seriesStart: Date, rule: string, from: Date, windowEnd: Date, limit: Date | null) {
   if (!rule) return seriesStart > from && seriesStart <= windowEnd ? [seriesStart] : [];
-  const to = limit && limit.getTime() - 1 < windowEnd.getTime() ? new Date(limit.getTime() - 1) : windowEnd;
+  const to = limit && limit < windowEnd ? limit : windowEnd;
   const out: Date[] = [];
   let start = seriesStart;
   if (rule.includes("FREQ=DAILY") || !rule.includes("FREQ=MONTHLY")) {
@@ -124,9 +120,9 @@ export function planReminders(
     const minutes = event.reminderMinutes || 0;
     if (event.owner.id !== meId || minutes <= 0 || seen.has(event.id)) continue;
     seen.add(event.id);
-    const seriesStartIso = event.seriesStartAt || event.startAt;
+    const seriesStart = new Date(event.seriesStartAt || event.startAt);
     const rule = event.recurrenceRule || "";
-    const starts = occurrenceStarts(new Date(seriesStartIso), rule, now, until, untilLimit(rule, seriesStartIso));
+    const starts = occurrenceStarts(seriesStart, rule, now, until, untilLimit(rule));
     for (const start of starts) {
       const at = new Date(start.getTime() - minutes * 60000);
       if (at <= now) continue;

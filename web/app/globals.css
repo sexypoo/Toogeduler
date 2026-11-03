@@ -4797,10 +4797,7 @@ button.social.google {
   align-items: end;
 }
 .event-modal .until-field label {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
+  grid-template-columns: auto 1fr;
   margin: 0 0 8px;
 }
 .event-modal .until-field .ghost {

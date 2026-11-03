@@ -153,8 +153,8 @@ class EventControllerTest {
 
     @Test
     void weeklyRuleWithUntilStopsAfterTheUntilDate() {
-        // 8월 3일(월)부터 매주, 끝나는 날은 2주 뒤 8월 17일: 3개월 범위에서도 3회만 나온다.
-        event.setRecurrenceRule("FREQ=WEEKLY;UNTIL=20260817");
+        // 8월 3일(월)부터 매주, 끝나는 날은 2주 뒤 8월 17일(한국 시간 그날 끝): 3개월 범위에서도 3회만 나온다.
+        event.setRecurrenceRule("FREQ=WEEKLY;UNTIL=20260817T145959Z");
         List<EventController.EventRange> ranges =
                 EventController.occurrenceRanges(
                         event,
@@ -169,18 +169,31 @@ class EventControllerTest {
     }
 
     @Test
-    void untilIsReadAtTheEndOfThatDayInTheEventsOwnOffset() {
-        // 밤 11시(한국 시간) 일정은 UTC로는 전날이지만, 끝나는 날 당일 회차는 포함된다.
-        event.setStartAt(OffsetDateTime.parse("2026-08-03T23:00:00+09:00"));
-        event.setEndAt(OffsetDateTime.parse("2026-08-03T23:30:00+09:00"));
-        event.setRecurrenceRule("FREQ=DAILY;UNTIL=20260805");
-        List<EventController.EventRange> ranges =
-                EventController.occurrenceRanges(
-                        event,
-                        OffsetDateTime.parse("2026-08-01T00:00:00Z"),
-                        OffsetDateTime.parse("2026-09-01T00:00:00Z"));
+    void untilDateIsTheEndOfThatDayWhereTheEventWasWrittenEvenWhenStoredInUtc() {
+        // 12월 18일부터 매일, 끝나는 날 12월 20일. DB 에서 읽으면 시작 시각은 Z 오프셋으로 온다.
+        OffsetDateTime from = OffsetDateTime.parse("2026-12-01T00:00:00Z"),
+                to = OffsetDateTime.parse("2027-01-01T00:00:00Z");
+        // 한국 시간 매일 오전 8시: 18·19·20일 3회 (21일 오전 8시는 나오지 않는다).
+        OffsetDateTime seoul = OffsetDateTime.parse("2026-12-18T08:00:00+09:00");
+        String seoulRule = EventController.normalizeRule("FREQ=DAILY;UNTIL=20261220", seoul);
+        assertEquals("FREQ=DAILY;UNTIL=20261220T145959Z", seoulRule);
+        stored(seoul, seoulRule);
+        List<EventController.EventRange> ranges = EventController.occurrenceRanges(event, from, to);
         assertEquals(3, ranges.size());
-        assertEquals(OffsetDateTime.parse("2026-08-05T23:00:00+09:00"), ranges.getLast().startAt());
+        assertEquals(OffsetDateTime.parse("2026-12-19T23:00:00Z"), ranges.getLast().startAt());
+        // 태평양 표준시 매일 저녁 8시: UTC 로는 다음 날이지만 끝나는 날 당일(20일) 회차까지 3회.
+        OffsetDateTime pacific = OffsetDateTime.parse("2026-12-18T20:00:00-08:00");
+        stored(pacific, EventController.normalizeRule("FREQ=DAILY;UNTIL=20261220", pacific));
+        ranges = EventController.occurrenceRanges(event, from, to);
+        assertEquals(3, ranges.size());
+        assertEquals(OffsetDateTime.parse("2026-12-21T04:00:00Z"), ranges.getLast().startAt());
+    }
+
+    // 저장 후 DB(timestamptz)에서 다시 읽은 것처럼 시작·종료 시각을 UTC 로 둔다.
+    private void stored(OffsetDateTime start, String rule) {
+        event.setStartAt(start.withOffsetSameInstant(java.time.ZoneOffset.UTC));
+        event.setEndAt(start.plusHours(1).withOffsetSameInstant(java.time.ZoneOffset.UTC));
+        event.setRecurrenceRule(rule);
     }
 
     @Test
@@ -201,15 +214,21 @@ class EventControllerTest {
         assertFalse(validator.validate(input("FREQ=YEARLY")).isEmpty());
         assertFalse(validator.validate(input("FREQ=WEEKLY;UNTIL=2026-12-20")).isEmpty());
         assertFalse(validator.validate(input("FREQ=WEEKLY;COUNT=3")).isEmpty());
+        assertFalse(validator.validate(input("FREQ=WEEKLY;UNTIL=20261220T145959")).isEmpty());
         assertTrue(validator.validate(input("FREQ=WEEKLY;UNTIL=20261220")).isEmpty());
+        assertTrue(validator.validate(input("FREQ=WEEKLY;UNTIL=20261220T145959Z")).isEmpty());
         assertTrue(validator.validate(input("FREQ=DAILY")).isEmpty());
         assertTrue(validator.validate(input("")).isEmpty());
     }
 
     @Test
     void untilBeforeTheStartDateOrNotARealDateIsRejected() {
-        // 일정 시작일은 8월 4일. 같은 날은 허용(그 한 번만), 하루 전·없는 날짜는 400.
-        for (String rule : List.of("FREQ=WEEKLY;UNTIL=20260803", "FREQ=WEEKLY;UNTIL=20261340")) {
+        // 일정 시작은 8월 4일 오후 7시(한국 시간). 같은 날은 허용(그 한 번만), 하루 전·시작 전 시각·없는 날짜는 400.
+        for (String rule :
+                List.of(
+                        "FREQ=WEEKLY;UNTIL=20260803",
+                        "FREQ=WEEKLY;UNTIL=20260804T095959Z",
+                        "FREQ=WEEKLY;UNTIL=20261340")) {
             ApiException error =
                     assertThrows(
                             ApiException.class, () -> controller.create(auth(owner), input(rule)));
@@ -218,7 +237,9 @@ class EventControllerTest {
         verify(events, never()).save(any());
         when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         controller.create(auth(owner), input("FREQ=WEEKLY;UNTIL=20260804"));
-        assertEquals("FREQ=WEEKLY;UNTIL=20260804", verifyAndGetSavedEvent().getRecurrenceRule());
+        // 날짜만 온 UNTIL 은 시작 시각의 오프셋(+09:00) 기준 그날 끝, UTC 형식으로 저장된다.
+        assertEquals(
+                "FREQ=WEEKLY;UNTIL=20260804T145959Z", verifyAndGetSavedEvent().getRecurrenceRule());
     }
 
     private EventController.EventInput input(String recurrenceRule) {
