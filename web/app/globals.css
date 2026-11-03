@@ -759,6 +759,7 @@ textarea:focus-visible {
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-auto-flow: row dense;
   gap: 12px;
 }
 .form-grid label {
@@ -2017,13 +2018,15 @@ textarea:focus-visible {
   font-weight: 750;
   color: #6e7480;
 }
-.time-row input {
+.time-row input,
+.event-modal .until-field input {
   min-width: 0;
   height: 38px;
   padding: 7px 9px;
   background: white;
 }
-.time-row input:disabled {
+.time-row input:disabled,
+.event-modal .until-field input:disabled {
   background: #f0f1f2;
   color: #8e929d;
 }
@@ -4786,6 +4789,26 @@ button.social.google {
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--muted);
+} /* 반복 일정의 끝나는 날(#71): 반복·알림 아래 전체 폭, 값이 있으면 오른쪽에 지우기 버튼. */
+.event-modal .until-field {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+.event-modal .until-field label {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+.event-modal .until-field .ghost {
+  margin: 0 0 8px 8px;
+}
+.event-modal .until-field .form-error {
+  grid-column: 1/-1;
+  margin: -2px 0 4px;
 } /* 알림 권한 거부 안내처럼 긴 토스트는 줄바꿈해 화면 밖으로 나가지 않게 합니다. */
 .toast.notice {
   white-space: normal;
@@ -4797,7 +4820,9 @@ button.social.google {
   flex: none;
 }
 @media (max-width: 760px) {
-  .event-modal select {
+  .event-modal select,
+  .event-modal .until-field input,
+  .event-modal .until-field .ghost {
     min-height: 44px;
   }
 } /* 초대 링크 미리보기 (#19): 기존 .group-preview 를 카드 가운데에 두고,긴 그룹 이름은 말줄임 없이 줄바꿈한다. */

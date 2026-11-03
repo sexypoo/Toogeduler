@@ -61,6 +61,31 @@ test("매주 반복 일정은 14일 안의 회차마다 하나씩 예약된다",
   assert.ok(reminders[1].link.endsWith(`at=${at(21, 19).toISOString()}`));
 });
 
+test("끝나는 날(UNTIL) 이후 회차의 알림은 예약하지 않는다", () => {
+  // 9월 30일(수)부터 매주 수요일 오후 7시, 끝나는 날 10월 17일(토): 14일 창 안의 10월 14일 회차만 남고 21일 회차는 없다.
+  const series = event({ start: at(14, 19), recurrenceRule: "FREQ=WEEKLY;UNTIL=20261017", reminderMinutes: 30 });
+  series.startAt = new Date(2026, 8, 30, 19).toISOString();
+  series.endAt = new Date(2026, 8, 30, 20).toISOString();
+  assert.deepEqual(
+    planReminders([series], ME, now).map((r) => r.at.getTime()),
+    [at(14, 18, 30).getTime()],
+  );
+});
+
+test("끝나는 날은 첫 회차의 오프셋 기준 그날 끝까지 포함한다", () => {
+  // 한국 시간 밤 11시 매일 일정, 끝나는 날 10월 21일: UTC로는 다음 날이 되는 10월 21일 회차도 울린다.
+  const series = event({ start: at(20, 12), recurrenceRule: "FREQ=DAILY;UNTIL=20261021" });
+  series.startAt = "2026-10-20T23:00:00+09:00";
+  series.endAt = "2026-10-21T00:00:00+09:00";
+  assert.deepEqual(
+    planReminders([series], ME, now).map((r) => r.link),
+    [
+      `/?event=10&at=${new Date("2026-10-20T23:00:00+09:00").toISOString()}`,
+      `/?event=10&at=${new Date("2026-10-21T23:00:00+09:00").toISOString()}`,
+    ],
+  );
+});
+
 test("서버가 회차로 펼쳐 준 목록이어도 같은 회차를 두 번 예약하지 않는다", () => {
   const seriesStart = new Date(2026, 8, 30, 19).toISOString(),
     seriesEnd = new Date(2026, 8, 30, 20).toISOString();

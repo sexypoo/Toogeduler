@@ -177,6 +177,59 @@ class AvailabilityControllerTest {
     }
 
     @Test
+    void weeklyEventStopsBlockingAfterItsUntilDate() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = new AvailabilityController(groups, members, events);
+        controller.clock = Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"), ZoneOffset.UTC);
+        User me = user(1L, "나"), sora = user(2L, "소라");
+        Group group = new Group();
+        group.setId(5L);
+        when(groups.findById(5L)).thenReturn(Optional.of(group));
+        when(members.existsByGroupIdAndUserId(5L, 1L)).thenReturn(true);
+        when(members.findByGroupId(5L)).thenReturn(List.of(member(group, me), member(group, sora)));
+        // 소라는 10월 7일(수)부터 매주 수요일 19–21시 동아리, 끝나는 날 10월 14일.
+        Event club = busy(sora, "2026-10-07T19:00:00+09:00", "2026-10-07T21:00:00+09:00");
+        club.setRecurrenceRule("FREQ=WEEKLY;UNTIL=20261014");
+        when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of(club));
+        var auth = new UsernamePasswordAuthenticationToken(me, null, List.of());
+
+        // 끝나는 날 당일(10월 14일)은 아직 바쁘다.
+        List<AvailabilityController.Slot> lastWeek =
+                controller.blocks(
+                        auth,
+                        5L,
+                        LocalDate.of(2026, 10, 14),
+                        LocalDate.of(2026, 10, 14),
+                        LocalTime.of(18, 0),
+                        LocalTime.of(22, 0),
+                        60,
+                        "Asia/Seoul",
+                        null);
+        assertTrue(lastWeek.stream().anyMatch(b -> !b.everyoneAvailable()));
+
+        // 그다음 주 같은 시간(10월 21일)은 모두 된다.
+        List<AvailabilityController.Slot> nextWeek =
+                controller.blocks(
+                        auth,
+                        5L,
+                        LocalDate.of(2026, 10, 21),
+                        LocalDate.of(2026, 10, 21),
+                        LocalTime.of(18, 0),
+                        LocalTime.of(22, 0),
+                        60,
+                        "Asia/Seoul",
+                        null);
+        assertEquals(1, nextWeek.size());
+        assertBlock(
+                nextWeek.getFirst(),
+                "2026-10-21T18:00:00+09:00",
+                "2026-10-21T22:00:00+09:00",
+                true);
+    }
+
+    @Test
     void requiredMembersMustAllBeFreeInEveryBlock() {
         GroupRepository groups = mock(GroupRepository.class);
         GroupMemberRepository members = mock(GroupMemberRepository.class);

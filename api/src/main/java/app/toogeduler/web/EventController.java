@@ -30,7 +30,9 @@ public class EventController {
             boolean allDay,
             Set<Event.Visibility> visibilities,
             Event.Visibility visibility,
-            @Pattern(regexp = "|FREQ=(DAILY|WEEKLY|MONTHLY)", message = "반복 설정이 올바르지 않습니다.")
+            @Pattern(
+                            regexp = "|FREQ=(DAILY|WEEKLY|MONTHLY)(;UNTIL=[0-9]{8})?",
+                            message = "반복 설정이 올바르지 않습니다.")
                     String recurrenceRule,
             @Min(0) @Max(10080) Integer reminderMinutes,
             @Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "색상 값이 올바르지 않습니다.") String color,
@@ -149,6 +151,13 @@ public class EventController {
         if (selected.contains(Event.Visibility.GROUP)
                 && (b.groupIds() == null || b.groupIds().isEmpty()))
             throw new ApiException(HttpStatus.BAD_REQUEST, "공개할 그룹을 선택해주세요.");
+        if (b.recurrenceRule() != null && b.recurrenceRule().contains("UNTIL=")) {
+            LocalDate until = untilDate(b.recurrenceRule());
+            if (until == null)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "반복 끝나는 날이 올바르지 않습니다.");
+            if (until.isBefore(b.startAt().toLocalDate()))
+                throw new ApiException(HttpStatus.BAD_REQUEST, "끝나는 날은 시작일 이후여야 해요.");
+        }
     }
 
     private void apply(Event e, EventInput b, User u) {
@@ -248,17 +257,39 @@ public class EventController {
                 out.add(new EventRange(e.getOwner().getId(), start, end));
             return out;
         }
+        // UNTIL 날짜가 있으면 그날 끝(첫 회차 시작 시각의 오프셋 기준)부터 시작하는 회차는 만들지 않는다.
+        LocalDate untilDate = untilDate(rule);
+        OffsetDateTime limit =
+                untilDate == null
+                        ? to
+                        : untilDate.plusDays(1).atStartOfDay().atOffset(start.getOffset());
+        if (limit.isAfter(to)) limit = to;
         int guard = 0;
         while (!end.isAfter(from) && guard++ < 5000) {
             start = next(start, rule);
             end = next(end, rule);
         }
-        while (start.isBefore(to) && guard++ < 5500) {
+        while (start.isBefore(limit) && guard++ < 5500) {
             if (end.isAfter(from)) out.add(new EventRange(e.getOwner().getId(), start, end));
             start = next(start, rule);
             end = next(end, rule);
         }
         return out;
+    }
+
+    // "FREQ=WEEKLY;UNTIL=20261220"의 UNTIL 날짜. 없거나 날짜가 아니면 null(끝없이 반복).
+    static LocalDate untilDate(String rule) {
+        if (rule == null) return null;
+        for (String part : rule.split(";")) {
+            if (!part.startsWith("UNTIL=")) continue;
+            try {
+                return LocalDate.parse(
+                        part.substring(6), java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+            } catch (DateTimeException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static OffsetDateTime next(OffsetDateTime value, String rule) {
