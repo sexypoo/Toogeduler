@@ -13,10 +13,8 @@ export function ruleUntil(rule: string) {
   return until ? format(until, "yyyy-MM-dd") : "";
 }
 export function buildRule(frequency: string, until: string) {
-  if (!frequency) return "";
-  if (!until) return frequency;
-  const endOfDay = new Date(`${until}T23:59:59`).toISOString();
-  return `${frequency};UNTIL=${endOfDay.slice(0, 19).replace(/[-:]/g, "")}Z`;
+  if (!frequency || !until) return frequency;
+  return `${frequency};UNTIL=${new Date(`${until}T23:59:59`).toISOString().replace(/[-:]|\.\d+/g, "")}`;
 }
 
 // 반복을 고른 일정에서만 보이는 "끝나는 날" 입력입니다. 비워 두면 끝없이 반복합니다.
