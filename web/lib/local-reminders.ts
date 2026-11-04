@@ -68,9 +68,19 @@ function reminderId(eventId: number, start: Date) {
   return hash & 0x7fffffff || 1;
 }
 
+// "FREQ=WEEKLY;UNTIL=20261220T145959Z"의 UNTIL 시각(RFC 5545 UTC 형식)입니다. 서버가 작성자 기기의 그날 끝을 UTC 로 바꿔 저장하므로
+// 이 시각보다 늦게 시작하는 회차는 만들지 않습니다. UNTIL 이 없으면 null(끝없이 반복).
+export function untilLimit(rule: string) {
+  const until = /(?:^|;)UNTIL=(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z(?:;|$)/.exec(rule);
+  if (!until) return null;
+  const [year, month, day, hour, minute, second] = until.slice(1).map(Number);
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+}
+
 // 서버(EventController.occurrenceRanges)와 같은 규칙으로 회차 시작 시각을 펼칩니다. 매월은 앞 회차에서 한 달씩 이어 갑니다.
-function occurrenceStarts(seriesStart: Date, rule: string, from: Date, to: Date) {
-  if (!rule) return seriesStart > from && seriesStart <= to ? [seriesStart] : [];
+function occurrenceStarts(seriesStart: Date, rule: string, from: Date, windowEnd: Date, limit: Date | null) {
+  if (!rule) return seriesStart > from && seriesStart <= windowEnd ? [seriesStart] : [];
+  const to = limit && limit < windowEnd ? limit : windowEnd;
   const out: Date[] = [];
   let start = seriesStart;
   if (rule.includes("FREQ=DAILY") || !rule.includes("FREQ=MONTHLY")) {
@@ -111,7 +121,9 @@ export function planReminders(
     if (event.owner.id !== meId || minutes <= 0 || seen.has(event.id)) continue;
     seen.add(event.id);
     const seriesStart = new Date(event.seriesStartAt || event.startAt);
-    for (const start of occurrenceStarts(seriesStart, event.recurrenceRule || "", now, until)) {
+    const rule = event.recurrenceRule || "";
+    const starts = occurrenceStarts(seriesStart, rule, now, until, untilLimit(rule));
+    for (const start of starts) {
       const at = new Date(start.getTime() - minutes * 60000);
       if (at <= now) continue;
       let id = reminderId(event.id, start);

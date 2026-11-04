@@ -30,7 +30,9 @@ public class EventController {
             boolean allDay,
             Set<Event.Visibility> visibilities,
             Event.Visibility visibility,
-            @Pattern(regexp = "|FREQ=(DAILY|WEEKLY|MONTHLY)", message = "반복 설정이 올바르지 않습니다.")
+            @Pattern(
+                            regexp = "|FREQ=(DAILY|WEEKLY|MONTHLY)(;UNTIL=[0-9]{8}(T[0-9]{6}Z)?)?",
+                            message = "반복 설정이 올바르지 않습니다.")
                     String recurrenceRule,
             @Min(0) @Max(10080) Integer reminderMinutes,
             @Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "색상 값이 올바르지 않습니다.") String color,
@@ -149,6 +151,13 @@ public class EventController {
         if (selected.contains(Event.Visibility.GROUP)
                 && (b.groupIds() == null || b.groupIds().isEmpty()))
             throw new ApiException(HttpStatus.BAD_REQUEST, "공개할 그룹을 선택해주세요.");
+        if (b.recurrenceRule() != null && b.recurrenceRule().contains("UNTIL=")) {
+            OffsetDateTime until = untilInstant(normalizeRule(b.recurrenceRule(), b.startAt()));
+            if (until == null)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "반복 끝나는 날이 올바르지 않습니다.");
+            if (until.isBefore(b.startAt()))
+                throw new ApiException(HttpStatus.BAD_REQUEST, "끝나는 날은 시작일 이후여야 해요.");
+        }
     }
 
     private void apply(Event e, EventInput b, User u) {
@@ -165,7 +174,7 @@ public class EventController {
         e.setRecurrenceRule(
                 b.recurrenceRule() == null || b.recurrenceRule().isBlank()
                         ? null
-                        : b.recurrenceRule());
+                        : normalizeRule(b.recurrenceRule(), b.startAt()));
         e.setReminderMinutes(
                 b.reminderMinutes() == null || b.reminderMinutes() <= 0
                         ? null
@@ -248,17 +257,55 @@ public class EventController {
                 out.add(new EventRange(e.getOwner().getId(), start, end));
             return out;
         }
+        // UNTIL(UTC 시각)보다 늦게 시작하는 회차는 만들지 않는다. UNTIL 시각에 딱 맞게 시작하는 회차는 포함(RFC 5545).
+        OffsetDateTime until = untilInstant(rule);
         int guard = 0;
         while (!end.isAfter(from) && guard++ < 5000) {
             start = next(start, rule);
             end = next(end, rule);
         }
-        while (start.isBefore(to) && guard++ < 5500) {
+        while (start.isBefore(to) && (until == null || !start.isAfter(until)) && guard++ < 5500) {
             if (end.isAfter(from)) out.add(new EventRange(e.getOwner().getId(), start, end));
             start = next(start, rule);
             end = next(end, rule);
         }
         return out;
+    }
+
+    private static final java.time.format.DateTimeFormatter UNTIL_UTC =
+            java.time.format.DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss'Z'")
+                    .withZone(ZoneOffset.UTC)
+                    .withResolverStyle(java.time.format.ResolverStyle.STRICT);
+
+    // 날짜만 온 UNTIL(8자리, 예: 20261220)은 입력 startAt의 오프셋(작성자 기기의 로컬 오프셋) 기준 그날 23:59:59로 보고
+    // RFC 5545 UTC 형식(UNTIL=20261220T145959Z)으로 바꿔 저장한다. DB·JVM 시간대와 상관없이 같은 순간을 가리키게 하려는 것.
+    static String normalizeRule(String rule, OffsetDateTime startAt) {
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("(?<=UNTIL=)([0-9]{8})(?=;|$)").matcher(rule);
+        if (!m.find()) return rule;
+        try {
+            LocalDate day =
+                    LocalDate.parse(m.group(1), java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+            OffsetDateTime end = day.atTime(23, 59, 59).atOffset(startAt.getOffset());
+            return m.replaceFirst(UNTIL_UTC.format(end));
+        } catch (DateTimeException ex) {
+            return rule;
+        }
+    }
+
+    // "FREQ=WEEKLY;UNTIL=20261220T145959Z"의 UNTIL 시각(UTC). 없거나 형식이 맞지 않으면 null.
+    static OffsetDateTime untilInstant(String rule) {
+        if (rule == null) return null;
+        for (String part : rule.split(";")) {
+            if (!part.startsWith("UNTIL=")) continue;
+            try {
+                return OffsetDateTime.ofInstant(
+                        Instant.from(UNTIL_UTC.parse(part.substring(6))), ZoneOffset.UTC);
+            } catch (DateTimeException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static OffsetDateTime next(OffsetDateTime value, String rule) {

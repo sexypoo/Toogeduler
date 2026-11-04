@@ -1,11 +1,12 @@
 "use client";
+import { RecurrenceUntilField, buildRule, ruleFrequency, ruleUntil } from "./recurrence-until";
 import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { format, parseISO } from "date-fns";
 import { Check, Clock3, Link2, Trash2, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function EventModal({
   value,
@@ -33,6 +34,11 @@ export function EventModal({
   });
   const readOnly = Boolean(v.id && v.owner && v.owner.id !== me.id);
   const selected = v.visibilities || ["PRIVATE"];
+  const untilRef = useRef<HTMLInputElement>(null);
+  const frequency = ruleFrequency(v.recurrenceRule || "");
+  const until = ruleUntil(v.recurrenceRule || "");
+  const startDate = format(parseISO(v.startAt!), "yyyy-MM-dd");
+  const untilInvalid = !readOnly && Boolean(frequency && until && until < startDate);
   function set<K extends keyof CalendarEvent>(key: K, val: CalendarEvent[K]) {
     setV((x) => ({ ...x, [key]: val }));
   }
@@ -75,7 +81,8 @@ export function EventModal({
         className={`event-modal ${readOnly ? "read-only" : ""}`}
         onSubmit={(e) => {
           e.preventDefault();
-          if (!readOnly) onSave(v);
+          if (untilInvalid) untilRef.current?.focus();
+          else if (!readOnly) onSave(v);
         }}
       >
         <header>
@@ -113,7 +120,7 @@ export function EventModal({
               required
               disabled={readOnly}
               type="date"
-              value={format(parseISO(v.startAt!), "yyyy-MM-dd")}
+              value={startDate}
               onChange={(e) => changeMoment("startAt", "date", e.target.value)}
             />
             <input
@@ -205,8 +212,8 @@ export function EventModal({
             반복
             <select
               disabled={readOnly}
-              value={v.recurrenceRule || ""}
-              onChange={(e) => set("recurrenceRule", e.target.value)}
+              value={frequency}
+              onChange={(e) => set("recurrenceRule", buildRule(e.target.value, until))}
             >
               <option value="">반복 안 함</option>
               <option value="FREQ=DAILY">매일</option>
@@ -214,6 +221,16 @@ export function EventModal({
               <option value="FREQ=MONTHLY">매월</option>
             </select>
           </label>
+          {frequency && (
+            <RecurrenceUntilField
+              until={until}
+              startDate={startDate}
+              invalid={untilInvalid}
+              readOnly={readOnly}
+              inputRef={untilRef}
+              onChange={(next) => set("recurrenceRule", buildRule(frequency, next))}
+            />
+          )}
           <label className="field-label">
             알림
             <select
