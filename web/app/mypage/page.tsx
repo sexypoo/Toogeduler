@@ -19,6 +19,7 @@ import {
 import { api, token, ApiError } from "@/lib/api";
 import { cancelAllReminders } from "@/lib/native-reminders";
 import { clearBrowserPwaCaches } from "@/lib/pwa";
+import { unsubscribeBrowserPush } from "@/lib/web-push-browser";
 import type { User, UserStats } from "@/lib/types";
 
 export default function MyPage() {
@@ -74,6 +75,7 @@ export default function MyPage() {
   }
   function logout() {
     cancelAllReminders();
+    unsubscribeBrowserPush();
     clearBrowserPwaCaches();
     localStorage.removeItem("toogeduler_token");
     router.push("/login");
@@ -85,6 +87,7 @@ export default function MyPage() {
     try {
       await api("/api/auth/me", { method: "DELETE", body: JSON.stringify({ password: deletePassword }) });
       cancelAllReminders();
+      unsubscribeBrowserPush();
       clearBrowserPwaCaches();
       localStorage.removeItem("toogeduler_token");
       router.replace("/login?deleted=1");

@@ -83,3 +83,44 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+// 웹 푸시(api 의 PushService)가 보낸 {title, message, url} 을 그대로 알림으로 띄웁니다. 문구는 가공하지 않습니다.
+// 같은 화면(url)으로 가는 알림은 tag 로 묶어 하나만 남깁니다.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { message: event.data ? event.data.text() : "" };
+  }
+  const url = data.url || "/";
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Toogeduler", {
+      body: data.message || "",
+      icon: "/icons/icon-192.png",
+      tag: url,
+      data: { url },
+    }),
+  );
+});
+
+// 알림을 누르면 같은 화면이 열린 창이 있으면 그 창으로, 없으면 새 창으로 payload url 을 엽니다.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const same = windows.find((w) => w.url === target);
+      if (same) return same.focus();
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+      // 서비스 워커의 제어를 받지 않는 창이면 navigate 가 reject 되므로, 그때는 새 창으로 엽니다.
+      if (open && "navigate" in open) {
+        return open
+          .focus()
+          .then((w) => (w || open).navigate(target))
+          .catch(() => self.clients.openWindow(target));
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});

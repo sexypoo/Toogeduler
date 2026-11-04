@@ -4,6 +4,7 @@ import { useDialog } from "@/lib/use-dialog";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Bell, BellRing, CalendarPlus, UserPlus, UsersRound } from "lucide-react";
+import { PushToggle } from "./push-toggle";
 
 export function NotificationPanel({
   items,
@@ -57,6 +58,7 @@ export function NotificationPanel({
           ))
         )}
       </div>
+      <PushToggle />
     </aside>
   );
 }

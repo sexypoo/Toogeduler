@@ -2762,8 +2762,11 @@ textarea:focus-visible {
   box-shadow: var(--shadow-overlay);
   z-index: 45;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .notification-panel > header {
+  flex: none;
   height: 64px;
   padding: 0 17px;
   border-bottom: 1px solid #ebecee;
@@ -2793,8 +2796,10 @@ textarea:focus-visible {
   font-weight: 700;
   cursor: pointer;
 }
+/* 패널 전체 높이(510px) 안에서 목록만 스크롤하고, 아래 푸시 설정 행은 항상 보이게 한다. */
 .notification-panel > div {
-  max-height: 445px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 .notification-panel > div > button {
@@ -2876,6 +2881,81 @@ textarea:focus-visible {
   font-size: 12px;
   margin-top: 4px;
 }
+/* 알림 센터 하단 "이 기기에서 알림 받기" 행 */
+.notification-push {
+  flex: none;
+  min-height: 56px;
+  padding: 12px 17px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.notification-push > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.notification-push b {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.notification-push small {
+  min-height: 1.45em;
+  font-size: 12px;
+  line-height: 1.45;
+  /* --muted 는 흰 바탕에서 4.4:1 이라 4.5:1 을 넘는 --ink-2 를 쓰고, 차단 안내는 한 단계 더 진하게 */
+  color: var(--ink-2);
+}
+.notification-push small.blocked {
+  color: var(--ink);
+}
+.notification-push > button {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -2px;
+  padding: 10px 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.notification-push > button[aria-disabled="true"] {
+  cursor: default;
+}
+.notification-push > button i {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--line);
+}
+.notification-push > button i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: white;
+  transition: transform 120ms;
+}
+.notification-push > button[aria-checked="true"] i {
+  background: var(--ink);
+}
+.notification-push > button[aria-checked="true"] i::after {
+  transform: translateX(16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .notification-push > button i::after {
+    transition: none;
+  }
+}
 .social b {
   font-size: 14px;
 }
@@ -2891,6 +2971,10 @@ textarea:focus-visible {
     right: 12px;
     left: 12px;
     width: auto;
+  }
+  .notification-push {
+    padding-left: 16px;
+    padding-right: 16px;
   }
   .social span {
     display: none;
