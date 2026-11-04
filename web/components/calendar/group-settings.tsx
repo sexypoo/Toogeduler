@@ -1,7 +1,9 @@
 "use client";
+import { GroupInfo } from "@/components/calendar/group-info";
 import { InviteLink } from "@/components/calendar/invite-link";
 import { personColor } from "@/components/owner-avatar";
 import { api } from "@/lib/api";
+import { canEditGroup } from "@/lib/group-edit";
 import type { Group, User } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { LogOut, Trash2, X } from "lucide-react";
@@ -20,7 +22,7 @@ export function GroupSettings({
   reload: () => Promise<void>;
 }) {
   const dialog = useDialog<HTMLElement>(close);
-  const owner = group.ownerId === me.id;
+  const owner = canEditGroup(group, me.id);
   async function action(path: string, method = "POST", message = "변경했어요.") {
     try {
       await api(`/api/groups/${group.id}${path}`, { method });
@@ -44,12 +46,16 @@ export function GroupSettings({
         <header>
           <div>
             <p>그룹 관리</p>
-            <h2 id={dialog.titleId}>{group.name}</h2>
+            <h2 id={dialog.titleId}>
+              <i className="group-swatch" style={{ background: group.color }} aria-hidden="true" />
+              {group.name}
+            </h2>
           </div>
           <button className="icon-btn" aria-label="닫기" onClick={close}>
             <X />
           </button>
         </header>
+        {owner && <GroupInfo key={group.id} group={group} close={close} show={show} reload={reload} />}
         <InviteLink group={group} owner={owner} show={show} reload={reload} />
         <section>
           <div className="settings-title">

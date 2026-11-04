@@ -1822,6 +1822,16 @@ textarea:focus-visible {
 .group-settings h2 {
   font-size: 20px;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 헤더 제목 옆의 그룹 색 필름. 이름·색을 저장하면 바로 바뀌어 반영된 것을 보여 준다. */
+.group-swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
 }
 .group-settings > section {
   padding: 22px 25px;
@@ -1906,6 +1916,16 @@ textarea:focus-visible {
 .settings-title {
   display: flex;
   justify-content: space-between;
+}
+.group-info > input {
+  width: 100%;
+  margin-top: 9px;
+}
+.group-info .form-error {
+  margin-bottom: 12px;
+}
+.group-info .primary {
+  height: 44px;
 }
 .settings-title span {
   font-size: 12.5px;
@@ -2173,7 +2193,8 @@ textarea:focus-visible {
   font-weight: 700;
 }
 .create-card > label input,
-.profile-card label input {
+.profile-card label input,
+.group-info > input {
   height: 44px;
   border: 1px solid #e2e3e6;
   border-radius: 9px;
@@ -2187,12 +2208,14 @@ textarea:focus-visible {
   color: #9fa3ac;
   font-size: 11px;
 }
-.create-card fieldset {
+.create-card fieldset,
+.group-info fieldset {
   border: 0;
   padding: 0;
   margin: 24px 0;
 }
-.create-card legend {
+.create-card legend,
+.group-info legend {
   font-size: 13px;
   font-weight: 700;
   color: #61656f;
@@ -3822,9 +3845,10 @@ textarea:focus-visible {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
   }
+  /* 44px 는 손가락 터치 영역의 최소 크기다. */
   .large-color-picker button {
     width: 100%;
-    max-width: 42px;
+    max-width: 44px;
     aspect-ratio: 1;
     height: auto;
     justify-self: center;
