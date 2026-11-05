@@ -1919,6 +1919,9 @@ textarea:focus-visible {
   display: flex;
   justify-content: space-between;
 }
+.settings-title h3 {
+  margin: 0;
+}
 .group-info > input {
   width: 100%;
   margin-top: 9px;
