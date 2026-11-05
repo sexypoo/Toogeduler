@@ -59,26 +59,26 @@ export function GroupSettings({
         <InviteLink group={group} owner={owner} show={show} reload={reload} />
         <section>
           <div className="settings-title">
-            <label>멤버</label>
+            <h3>멤버</h3>
             <span>{group.members.length}명</span>
           </div>
-          <div className="member-list">
+          <div className="member-list" role="list">
             {group.members.map((m) => (
-              <article key={m.id}>
-                <span className="friend-avatar" style={{ background: personColor(m.id) }}>
-                  {m.name.slice(-1)}
+              <article key={m.id} role="listitem">
+                <span className="friend-avatar" style={{ background: personColor(m.id) }} aria-hidden="true">
+                  {m.name.slice(-1) || "?"}
                 </span>
-                <div>
+                <div title={m.name}>
                   <b>
                     {m.name}
                     {m.id === me.id && " (나)"}
                   </b>
-                  <small>{m.email}</small>
                 </div>
                 <em>{m.role === "OWNER" ? "그룹장" : "멤버"}</em>
                 {owner && m.id !== me.id && (
                   <div className="member-actions">
                     <button
+                      aria-label={`${m.name}님에게 그룹장 양도`}
                       onClick={() =>
                         confirm(`${m.name}님에게 그룹장을 양도할까요?`) &&
                         action(`/transfer/${m.id}`, "POST", "그룹장을 양도했어요.")
@@ -88,6 +88,7 @@ export function GroupSettings({
                     </button>
                     <button
                       className="remove"
+                      aria-label={`${m.name}님 내보내기`}
                       onClick={() =>
                         confirm(`${m.name}님을 그룹에서 내보낼까요?`) &&
                         action(`/members/${m.id}`, "DELETE", "멤버를 내보냈어요.")

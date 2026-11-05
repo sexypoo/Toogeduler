@@ -1838,7 +1838,8 @@ textarea:focus-visible {
   padding: 22px 25px;
   border-bottom: 1px solid var(--line);
 }
-.group-settings label {
+.group-settings label,
+.settings-title h3 {
   font-size: 13px;
   font-weight: 700;
 }
@@ -1936,6 +1937,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 48px;
   padding: 13px 0;
   border-bottom: 1px solid #f1f1f2;
   position: relative;
@@ -1948,14 +1950,13 @@ textarea:focus-visible {
 .member-list article > div:nth-child(2) {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .member-list b {
   font-size: 13px;
-}
-.member-list small {
-  font-size: 11px;
-  color: #9196a0;
-  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .member-list em {
   margin-left: auto;
@@ -4125,9 +4126,6 @@ textarea:focus-visible {
     min-width: 0;
     flex: 1;
   }
-  .member-list small {
-    overflow-wrap: anywhere;
-  }
   .member-actions {
     position: static;
     width: calc(100% - 45px);
@@ -4135,6 +4133,10 @@ textarea:focus-visible {
     opacity: 1;
     pointer-events: auto;
     box-shadow: none;
+  }
+  .member-actions button {
+    flex: 1;
+    min-height: 44px;
   }
   .people-empty {
     padding: 42px 16px;
