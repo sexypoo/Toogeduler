@@ -194,7 +194,8 @@ public class GroupController {
                         .map(
                                 m -> {
                                     Map<String, Object> x =
-                                            new LinkedHashMap<>(AuthController.user(m.getUser()));
+                                            new LinkedHashMap<>(
+                                                    AuthController.publicUser(m.getUser()));
                                     x.put("role", m.getRole());
                                     return x;
                                 })
