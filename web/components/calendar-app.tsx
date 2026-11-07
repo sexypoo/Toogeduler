@@ -7,10 +7,13 @@ import { MonthView } from "./calendar/month-view";
 import { NotificationPanel } from "./calendar/notification-panel";
 import { PeopleStrip } from "./calendar/people-strip";
 import { Sidebar } from "./calendar/sidebar";
+import { Toast, type ToastAction } from "./calendar/toast";
 import { WeekView } from "./calendar/week-view";
 import { REMINDERS_DENIED, offsetIso } from "./calendar/shared";
 import { ApiError, api } from "@/lib/api";
 import { EVENT_COLORS } from "@/lib/colors";
+import { confirmedShareData, groupLabel } from "@/lib/event-share";
+import { shareOrCopy } from "@/lib/invite-share";
 import {
   askReminderPermissionOnce,
   cancelAllReminders,
@@ -21,6 +24,7 @@ import {
 import { clearBrowserPwaCaches } from "@/lib/pwa";
 import { unsubscribeBrowserPush } from "@/lib/web-push-browser";
 import { shiftSeries } from "@/lib/time";
+import { viewerZone } from "@/lib/zoned-time";
 import type { AppNotification, CalendarEvent, Group, Slot, User } from "@/lib/types";
 import {
   addDays,
@@ -35,7 +39,7 @@ import {
   subMonths,
 } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Bell, BellOff, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Plus, Sparkles } from "lucide-react";
+import { Bell, ChevronDown, ChevronLeft, ChevronRight, Menu, Plus, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -57,17 +61,30 @@ export default function CalendarApp() {
   const [unread, setUnread] = useState(0);
   const [toast, setToast] = useState("");
   const [toastNotice, setToastNotice] = useState(false);
+  const [toastAction, setToastAction] = useState<ToastAction | null>(null);
   const [remindersOff, setRemindersOff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const toastTimer = useRef(0);
   const eventsRequest = useRef(0);
   // notice 는 길게 읽어야 하는 안내(알림 권한 거부)라 5초 동안 종 아이콘과 함께 보여줍니다.
-  const show = useCallback((message: string, notice = false) => {
-    setToast(message);
-    setToastNotice(notice);
+  // action 이 붙으면 버튼을 누를 시간이 필요해 8초 동안 보여주고, 사용 중(hold)에는 타이머를 멈춥니다.
+  const holdToast = useCallback((paused: boolean, ms = 8000) => {
     window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast(""), notice ? 5000 : 2400);
+    if (!paused) toastTimer.current = window.setTimeout(() => setToast(""), ms);
+  }, []);
+  const show = useCallback(
+    (message: string, notice = false, action?: ToastAction) => {
+      setToast(message);
+      setToastNotice(notice);
+      setToastAction(action ?? null);
+      holdToast(false, action ? 8000 : notice ? 5000 : 2400);
+    },
+    [holdToast],
+  );
+  const hideToast = useCallback(() => {
+    window.clearTimeout(toastTimer.current);
+    setToast("");
   }, []);
   // 리마인더 알림 링크(/?event=ID&at=회차시작)를 열어, 반복 일정이면 바로 그 회차를 보여줍니다.
   const openLinkedEvent = useCallback(
@@ -283,14 +300,32 @@ export default function CalendarApp() {
           : { startAt: offsetIso(input.startAt!), endAt: offsetIso(input.endAt!) };
       const body = { ...input, ...times, groupIds: input.groupIds || [] };
       if (input.id) await api(`/api/events/${input.id}`, { method: "PUT", body: JSON.stringify(body) });
-      else await api("/api/events", { method: "POST", body: JSON.stringify(body) });
+      const created = input.id
+        ? null
+        : await api<CalendarEvent>("/api/events", { method: "POST", body: JSON.stringify(body) });
       setModal(null);
-      show(input.id ? "일정을 수정했어요." : "일정을 추가했어요.");
+      if (created && body.groupIds.length) show("일정을 추가했어요.", false, shareAction(created, body.groupIds));
+      else show(input.id ? "일정을 수정했어요." : "일정을 추가했어요.");
       loadEvents();
       afterReminderChange((input.reminderMinutes || 0) > 0);
     } catch (e) {
       show(e instanceof Error ? e.message : "저장하지 못했습니다.");
     }
+  }
+  // 그룹 일정을 새로 확정하면 토스트에 "단톡방에 알리기"를 붙입니다. 응답에 id 가 없으면 링크 없이 문구만 공유합니다.
+  function shareAction(created: CalendarEvent, groupIds: number[]): ToastAction {
+    const names = groupIds.map((id) => groups.find((g) => g.id === id)?.name).filter((n): n is string => !!n);
+    return {
+      label: "단톡방에 알리기",
+      ariaLabel: "일정을 단톡방에 알리기",
+      run: async () => {
+        const data = confirmedShareData(created, groupLabel(names), viewerZone(), window.location.origin);
+        const result = await shareOrCopy(navigator, data);
+        if (result === "copied") show("확정 안내를 복사했어요.");
+        else if (result === "failed") show("복사하지 못했어요.");
+        else hideToast();
+      },
+    };
   }
   async function deleteEvent(id: number) {
     if (
@@ -537,12 +572,7 @@ export default function CalendarApp() {
       {groupSettings && currentGroup && (
         <GroupSettings group={currentGroup} me={me} close={() => setGroupSettings(false)} show={show} reload={load} />
       )}
-      {toast && (
-        <div className={`toast ${toastNotice ? "notice" : ""}`} role="status" aria-live="polite">
-          {toastNotice ? <BellOff size={16} /> : <Check size={16} />}
-          {toast}
-        </div>
-      )}
+      {toast && <Toast message={toast} notice={toastNotice} action={toastAction} hold={holdToast} close={hideToast} />}
     </div>
   );
 }
