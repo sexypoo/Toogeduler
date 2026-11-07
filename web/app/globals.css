@@ -898,6 +898,33 @@ textarea:focus-visible {
 .toast svg {
   color: #53b7d6;
 }
+/* 확정 안내 공유(#73): 토스트 배경이 이미 --ink 라 버튼은 테두리만 두고, 버튼이 토스트 높이를 채운다. */
+.toast.has-action {
+  padding: 6px 6px 6px 17px;
+}
+.toast-action {
+  flex: none;
+  height: 36px;
+  margin-left: 6px;
+  padding: 0 10px;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.toast-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+.toast-action:focus-visible {
+  outline-color: #fff;
+}
+.toast-action:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
 .drawer-scrim {
   justify-content: flex-end;
   padding: 0;
@@ -3583,6 +3610,14 @@ textarea:focus-visible {
     max-width: calc(100vw - 24px);
     white-space: nowrap;
   }
+  .toast.has-action {
+    padding: 4px 6px 4px 14px;
+  }
+  .toast-action {
+    height: auto;
+    min-height: 44px;
+    padding: 0 14px;
+  }
   .week-head > div:not(.tz) {
     touch-action: manipulation;
   }
@@ -4919,14 +4954,16 @@ button.social.google {
 .event-modal .until-field .form-error {
   grid-column: 1/-1;
   margin: -2px 0 4px;
-} /* 알림 권한 거부 안내처럼 긴 토스트는 줄바꿈해 화면 밖으로 나가지 않게 합니다. */
-.toast.notice {
+} /* 알림 권한 거부 안내처럼 긴 토스트나 버튼이 붙은 토스트는 줄바꿈해 화면 밖으로 나가지 않게 합니다. */
+.toast.notice,
+.toast.has-action {
   white-space: normal;
   width: max-content;
   max-width: calc(100% - 32px);
   line-height: 1.45;
 }
-.toast.notice svg {
+.toast.notice svg,
+.toast.has-action svg {
   flex: none;
 }
 @media (max-width: 760px) {
