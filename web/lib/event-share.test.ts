@@ -33,14 +33,39 @@ test("날짜·시각은 보는 사람 시간대로 쓴다", () => {
   assert.equal(data.text, "[동아리 운영진] 정기 회의 · 11월 5일 (수) 오전 11:00–오후 1:00");
 });
 
-test("날짜를 넘기는 일정은 끝 날짜를 붙이고, 종일 일정은 종일로 쓴다", () => {
+test("날짜를 넘기는 일정은 끝 날짜를 붙인다", () => {
   const late = { ...MEETING, startAt: "2025-11-05T14:00:00Z", endAt: "2025-11-05T16:00:00Z" };
   assert.equal(
     confirmedShareData(late, "동아리", ZONE).text,
     "[동아리] 정기 회의 · 11월 5일 (수) 오후 11:00 – 11월 6일 (목) 오전 1:00",
   );
-  const allDay = { ...MEETING, allDay: true, startAt: "2025-11-05T00:00:00Z", endAt: "2025-11-05T14:59:00Z" };
-  assert.equal(confirmedShareData(allDay, "동아리", ZONE).text, "[동아리] 정기 회의 · 11월 5일 (수) 종일");
+});
+
+// 종일 일정은 모달에서 고른 시각이 그대로 저장되므로(예: 오전 9:00–10:00), 끝은 0시 정각일 수도 아닐 수도 있다.
+const ALL_DAY = { ...MEETING, allDay: true };
+test("하루짜리 종일 일정은 그날 종일로 쓴다", () => {
+  const kept = { ...ALL_DAY, startAt: "2025-11-05T00:00:00Z", endAt: "2025-11-05T01:00:00Z" }; // 서울 9:00–10:00
+  assert.equal(confirmedShareData(kept, "동아리", ZONE).text, "[동아리] 정기 회의 · 11월 5일 (수) 종일");
+  // 끝이 다음 날 0시(배타적)여도 하루짜리다.
+  const exclusive = { ...ALL_DAY, startAt: "2025-11-04T15:00:00Z", endAt: "2025-11-05T15:00:00Z" }; // 서울 5일 0시–6일 0시
+  assert.equal(confirmedShareData(exclusive, "동아리", ZONE).text, "[동아리] 정기 회의 · 11월 5일 (수) 종일");
+});
+
+test("여러 날짜 종일 일정은 시작일과 끝 날짜를 함께 쓴다", () => {
+  const kept = { ...ALL_DAY, startAt: "2025-11-05T00:00:00Z", endAt: "2025-11-07T01:00:00Z" }; // 서울 5일 9:00–7일 10:00
+  const text = "[동아리] 정기 회의 · 11월 5일 (수) – 11월 7일 (금) 종일";
+  assert.equal(confirmedShareData(kept, "동아리", ZONE).text, text);
+  const exclusive = { ...ALL_DAY, startAt: "2025-11-04T15:00:00Z", endAt: "2025-11-07T15:00:00Z" }; // 서울 5일 0시–8일 0시
+  assert.equal(confirmedShareData(exclusive, "동아리", ZONE).text, text);
+});
+
+test("종일 일정의 날짜도 보는 사람 시간대로 쓴다", () => {
+  // 서울 5일 9:00–7일 10:00 은 로스앤젤레스(UTC-8)에서 4일 오후 4:00–6일 오후 5:00 이다.
+  const kept = { ...ALL_DAY, startAt: "2025-11-05T00:00:00Z", endAt: "2025-11-07T01:00:00Z" };
+  assert.equal(
+    confirmedShareData(kept, "동아리", "America/Los_Angeles").text,
+    "[동아리] 정기 회의 · 11월 4일 (화) – 11월 6일 (목) 종일",
+  );
 });
 
 test("생성 응답에 id 가 없으면 링크 없이 문구만 만든다", () => {

@@ -11,10 +11,17 @@ export function groupLabel(names: string[]) {
   return names.length > 1 ? `${names[0]} 외 ${names.length - 1}개` : (names[0] ?? "");
 }
 
-/** 예) "11월 5일 (수) 오후 7:00–9:00". 오전/오후가 같으면 끝 시각에서 뺀다. 날짜가 넘어가면 끝 날짜를 붙인다. */
+/** 예) "11월 5일 (수) 오후 7:00–9:00". 오전/오후가 같으면 끝 시각에서 뺀다. 날짜가 넘어가면 끝 날짜를 붙인다.
+ * 종일 일정은 "11월 5일 (수) 종일", 여러 날이면 "11월 5일 (수) – 11월 7일 (금) 종일". */
 export function confirmedWhen(event: ConfirmedEvent, zone: string) {
   const date = (iso: string) => zonedLabel(iso, { month: "long", day: "numeric", weekday: "short" }, zone);
-  if (event.allDay) return `${date(event.startAt)} 종일`;
+  if (event.allDay) {
+    // 종일 일정은 모달이 시각 입력만 막고 고른 시각을 그대로 저장한다(다음 날 0시로 맞추지 않는다).
+    // 캘린더(overlapsDay)처럼 끝을 배타적으로 보아, 끝이 0시 정각이면 그 전날까지로 친다.
+    const last = new Date(Math.max(Date.parse(event.startAt), Date.parse(event.endAt) - 1)).toISOString();
+    const sameDay = zonedClock(event.startAt, zone).day === zonedClock(last, zone).day;
+    return sameDay ? `${date(event.startAt)} 종일` : `${date(event.startAt)} – ${date(last)} 종일`;
+  }
   const time = (iso: string) => zonedLabel(iso, { hour: "numeric", minute: "2-digit" }, zone);
   const start = time(event.startAt);
   const end = time(event.endAt);
