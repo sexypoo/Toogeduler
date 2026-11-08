@@ -58,7 +58,7 @@ public class EventController {
         apply(e, body, user);
         e.setPublicToken(UUID.randomUUID().toString());
         Event saved = events.save(e);
-        // "그룹 멤버에게 알리기"를 고른 그룹 공개 일정이면 같은 그룹 멤버에게 알린다(수정할 때는 보내지 않는다).
+        // "그룹 멤버에게 알리기"를 고른 그룹 공개 일정이면 같은 그룹 멤버에게 알린다. 수정은 update에서 시간이 바뀐 경우만 따로 알린다.
         if (Boolean.TRUE.equals(body.announce())
                 && effectiveVisibilities(saved).contains(Event.Visibility.GROUP))
             notificationService.announceGroupEvent(saved);
@@ -71,8 +71,17 @@ public class EventController {
         User user = ApiSupport.user(auth);
         Event e = owned(id, user);
         validate(body);
+        // 시작·종료는 같은 순간이면 오프셋이 달라도(예: DB에서 읽은 Z와 입력의 +09:00) 바뀌지 않은 것으로 본다.
+        boolean moved =
+                !e.getStartAt().isEqual(body.startAt()) || !e.getEndAt().isEqual(body.endAt());
         apply(e, body, user);
-        return view(events.save(e), true);
+        Event saved = events.save(e);
+        // "바뀐 시간을 그룹 멤버에게 알리기"를 고른 그룹 공개 일정이고 시간이 실제로 바뀐 경우에만 알린다.
+        if (moved
+                && Boolean.TRUE.equals(body.announce())
+                && effectiveVisibilities(saved).contains(Event.Visibility.GROUP))
+            notificationService.announceGroupEventMoved(saved);
+        return view(saved, true);
     }
 
     @PatchMapping("/api/events/{id}/move")

@@ -102,6 +102,44 @@ public class NotificationService {
             }
     }
 
+    /**
+     * 그룹에 공유한 일정의 시간을 바꾸며 "바뀐 시간을 그룹 멤버에게 알리기"를 고른 경우, 그 그룹의 다른 멤버에게 새 시각을 알린다. 같은 시각으로 두 번 저장해도 한
+     * 번만, 다른 시각으로 또 옮기면 다시 보낸다. 여러 그룹에 함께 있는 사람은 한 번만 받는다.
+     */
+    @Transactional
+    public void announceGroupEventMoved(Event event) {
+        User owner = event.getOwner();
+        String when = event.getStartAt().atZoneSameInstant(SEOUL).format(WHEN);
+        long startSecond = event.getStartAt().toEpochSecond();
+        Set<Long> notified = new HashSet<>();
+        notified.add(owner.getId());
+        for (Group group :
+                event.getGroups().stream().sorted(Comparator.comparing(Group::getId)).toList())
+            for (GroupMember member : members.findByGroupId(group.getId())) {
+                User user = member.getUser();
+                if (!notified.add(user.getId())) continue;
+                notify(
+                        user,
+                        Notification.Type.GROUP_EVENT,
+                        "그룹 일정 시간이 바뀌었어요",
+                        owner.getName()
+                                + "님이 "
+                                + group.getName()
+                                + "의 '"
+                                + event.getTitle()
+                                + "' 일정을 "
+                                + when
+                                + "으로 옮겼어요.",
+                        "/?group=" + group.getId() + "&at=" + event.getStartAt().toInstant(),
+                        "group-event-moved:"
+                                + event.getId()
+                                + ":"
+                                + startSecond
+                                + ":"
+                                + user.getId());
+            }
+    }
+
     private String reminderText(int minutes) {
         if (minutes == 1440) return "내일 시작하는 일정입니다.";
         if (minutes >= 60) return (minutes / 60) + "시간 뒤에 시작합니다.";
