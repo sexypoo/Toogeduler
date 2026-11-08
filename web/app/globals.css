@@ -4927,6 +4927,7 @@ button.social.google {
   }
 }
 .event-modal .announce-line {
+  min-height: 44px;
   margin: 4px 0 10px;
   color: var(--teal-strong);
   font-weight: 650;

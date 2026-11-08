@@ -2,6 +2,7 @@
 import { RecurrenceUntilField, buildRule, ruleFrequency, ruleUntil } from "./recurrence-until";
 import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
+import { shouldOfferMoveAnnounce } from "@/lib/event-move-announce";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { format, parseISO } from "date-fns";
@@ -39,6 +40,14 @@ export function EventModal({
   const until = ruleUntil(v.recurrenceRule || "");
   const startDate = format(parseISO(v.startAt!), "yyyy-MM-dd");
   const untilInvalid = !readOnly && Boolean(frequency && until && until < startDate);
+  // 기존 그룹 일정의 시간을 바꾸면 "바뀐 시간을 그룹 멤버에게 알리기" 줄을 기본 체크로 보여 줍니다.
+  // 줄이 사라지면(시간 원복·GROUP 해제) 체크도 풀어 PUT 에 announce=true 가 새어 나가지 않게 합니다.
+  const offerMove = !readOnly && shouldOfferMoveAnnounce(value, v);
+  const [offeredMove, setOfferedMove] = useState(false);
+  if (v.id && offerMove !== offeredMove) {
+    setOfferedMove(offerMove);
+    setV((x) => ({ ...x, announce: offerMove }));
+  }
   function set<K extends keyof CalendarEvent>(key: K, val: CalendarEvent[K]) {
     setV((x) => ({ ...x, [key]: val }));
   }
@@ -201,11 +210,23 @@ export function EventModal({
             ))}
           </fieldset>
         )}
-        {!v.id && !readOnly && selected.includes("GROUP") && (
-          <label className="check-line announce-line">
-            <input type="checkbox" checked={v.announce || false} onChange={(e) => set("announce", e.target.checked)} />
-            <span>그룹 멤버에게 알리기</span>
-          </label>
+        {!readOnly && selected.includes("GROUP") && (!v.id || offerMove) && (
+          <>
+            <label className="check-line announce-line">
+              <input
+                type="checkbox"
+                checked={v.announce || false}
+                aria-describedby={v.id ? "move-announce-hint" : undefined}
+                onChange={(e) => set("announce", e.target.checked)}
+              />
+              <span>{v.id ? "바뀐 시간을 그룹 멤버에게 알리기" : "그룹 멤버에게 알리기"}</span>
+            </label>
+            {v.id && (
+              <span id="move-announce-hint" className="sr-only">
+                시간이 바뀌어서 알릴 수 있어요.
+              </span>
+            )}
+          </>
         )}
         <div className="form-grid">
           <label className="field-label">

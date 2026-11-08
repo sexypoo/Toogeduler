@@ -305,6 +305,7 @@ export default function CalendarApp() {
         : await api<CalendarEvent>("/api/events", { method: "POST", body: JSON.stringify(body) });
       setModal(null);
       if (created && body.groupIds.length) show("일정을 추가했어요.", false, shareAction(created, body.groupIds));
+      else if (input.id && body.announce) show("일정을 수정하고 멤버에게 알렸어요.");
       else show(input.id ? "일정을 수정했어요." : "일정을 추가했어요.");
       loadEvents();
       afterReminderChange((input.reminderMinutes || 0) > 0);
