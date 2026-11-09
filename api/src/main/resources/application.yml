@@ -58,6 +58,9 @@ app:
   web-url: ${WEB_URL:http://localhost:3000}
   mobile-url: ${MOBILE_URL:toogeduler://auth/callback}
   seed-demo: ${SEED_DEMO:true}
+  # 로그인 쿠키(SEC-011)의 Secure·`__Host-`. 프록시 뒤라 request.isSecure() 대신 이 값을 쓴다. http://localhost 에서만 false.
+  auth-cookie:
+    secure: ${AUTH_COOKIE_SECURE:true}
   # 웹 푸시 발신자 키(VAPID). 비어 있으면 발송만 건너뛴다. 운영 키 등록은 #59.
   vapid:
     public-key: ${VAPID_PUBLIC_KEY:}

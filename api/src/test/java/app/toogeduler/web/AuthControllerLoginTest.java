@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import app.toogeduler.domain.User;
 import app.toogeduler.repo.*;
+import app.toogeduler.security.AuthCookies;
 import app.toogeduler.security.DeviceTokens;
 import app.toogeduler.security.JwtService;
 import app.toogeduler.security.OAuthLoginCodes;
@@ -15,6 +16,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /** 공격자가 비밀번호를 일부러 틀려 계정을 잠가도, 주인은 전에 로그인했던 기기에서 계속 로그인할 수 있어야 한다. */
@@ -46,7 +49,8 @@ class AuthControllerLoginTest {
                         mock(AccountService.class),
                         new LoginAttemptService(),
                         new OAuthLoginCodes(),
-                        deviceTokens);
+                        deviceTokens,
+                        new AuthCookies(true));
     }
 
     @Test
@@ -90,7 +94,9 @@ class AuthControllerLoginTest {
                         () ->
                                 controller.login(
                                         new AuthController.Login(
-                                                "nobody@example.com", "whatever-pass", null)));
+                                                "nobody@example.com", "whatever-pass", null),
+                                        new MockHttpServletRequest(),
+                                        new MockHttpServletResponse()));
         assertEquals(HttpStatus.UNAUTHORIZED, e.status);
     }
 
@@ -100,6 +106,9 @@ class AuthControllerLoginTest {
     }
 
     private Map<String, Object> login(String password, String device) {
-        return controller.login(new AuthController.Login("owner@example.com", password, device));
+        return controller.login(
+                new AuthController.Login("owner@example.com", password, device),
+                new MockHttpServletRequest(),
+                new MockHttpServletResponse());
     }
 }

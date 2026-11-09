@@ -47,6 +47,8 @@ SEED_DEMO=false
 
 `PORT`는 직접 만들지 않습니다. Railway가 제공한 `PORT`를 Spring Boot가 자동으로 사용합니다.
 
+`AUTH_COOKIE_SECURE`도 운영에는 넣지 않습니다. 넣지 않으면 기본값 `true`가 적용되어 로그인 쿠키(SEC-011)에 `Secure`와 `__Host-` 접두사가 붙습니다. `false`는 `http://localhost` 개발 전용입니다. `api/.env.example`을 `.env`로 복사하면 `false`로 설정되며, 직접 실행할 때는 `AUTH_COOKIE_SECURE=false ./mvnw spring-boot:run`처럼 지정해도 됩니다. 운영에서 `false`가 되면 형제 서브도메인이 쿠키를 덮어쓸 수 있어 CSRF 방어가 약해집니다.
+
 5. 배포를 실행합니다. Dockerfile이 Java 21로 API를 빌드하고 `/actuator/health`를 상태 확인에 사용합니다.
 6. `Settings → Networking → Public Networking`에서 우선 Railway 도메인을 생성해 API가 실행되는지 확인합니다.
 
