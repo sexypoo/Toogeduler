@@ -15,6 +15,7 @@ import { EVENT_COLORS } from "@/lib/colors";
 import { deleteEventUrl } from "@/lib/event-cancel-announce";
 import { confirmedShareData, groupLabel } from "@/lib/event-share";
 import { shareOrCopy } from "@/lib/invite-share";
+import { ruleEndingBefore } from "@/lib/recurrence-cut";
 import {
   askReminderPermissionOnce,
   cancelAllReminders,
@@ -329,8 +330,10 @@ export default function CalendarApp() {
       },
     };
   }
-  async function deleteEvent(id: number, announce: boolean) {
+  // scopeChosen: 모달의 삭제 범위 선택 줄에서 "모든 회차 삭제"를 이미 고른 경우라 확인창을 다시 띄우지 않습니다.
+  async function deleteEvent(id: number, announce: boolean, scopeChosen = false) {
     if (
+      !scopeChosen &&
       events.some((e) => e.id === id && e.recurrenceRule) &&
       !window.confirm("반복 일정이에요. 모든 회차가 함께 삭제됩니다.")
     )
@@ -343,6 +346,26 @@ export default function CalendarApp() {
       afterReminderChange();
     } catch (e) {
       show(e instanceof Error ? e.message : "삭제하지 못했습니다.");
+    }
+  }
+  // "이 일정부터 이후 모두 삭제": 시리즈의 원래 시작·끝과 나머지 필드는 그대로 두고 반복 규칙만 이 회차 직전에서 끝냅니다.
+  async function endSeriesBefore(occurrence: Partial<CalendarEvent>) {
+    const body = {
+      ...occurrence,
+      startAt: occurrence.seriesStartAt,
+      endAt: occurrence.seriesEndAt,
+      recurrenceRule: ruleEndingBefore(occurrence.recurrenceRule!, occurrence.instanceStart!),
+      groupIds: occurrence.groupIds || [],
+      announce: false,
+    };
+    try {
+      await api(`/api/events/${occurrence.id}`, { method: "PUT", body: JSON.stringify(body) });
+      setModal(null);
+      show("이 일정부터 반복을 끝냈어요.");
+      loadEvents();
+      afterReminderChange();
+    } catch (e) {
+      show(e instanceof Error ? e.message : "반복을 끝내지 못했어요. 잠시 후 다시 시도해 주세요.");
     }
   }
   async function moveEvent(event: CalendarEvent, start: Date) {
@@ -559,6 +582,7 @@ export default function CalendarApp() {
           onClose={() => setModal(null)}
           onSave={saveEvent}
           onDelete={deleteEvent}
+          onEndSeries={endSeriesBefore}
           show={show}
         />
       )}
