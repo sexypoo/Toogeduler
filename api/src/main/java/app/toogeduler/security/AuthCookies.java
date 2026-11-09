@@ -23,6 +23,9 @@ public class AuthCookies {
     static final Duration DEVICE_AGE = Duration.ofDays(365);
     static final String SIGNED_IN = "tg_signed_in";
 
+    /** 쿠키 방식으로 로그인하겠다는 클라이언트 표시(#80 웹부터 보낸다). 없으면 login·register·exchange 는 쿠키를 주지 않는다. */
+    public static final String MODE_HEADER = "X-Auth-Mode";
+
     private final boolean secure;
     private final String accessName;
     private final String deviceName;
@@ -53,6 +56,10 @@ public class AuthCookies {
         add(res, deviceName, "", Duration.ZERO, true);
     }
 
+    public boolean requested(HttpServletRequest req) {
+        return "cookie".equals(req.getHeader(MODE_HEADER));
+    }
+
     public String access(HttpServletRequest req) {
         return read(req, accessName);
     }
@@ -67,7 +74,7 @@ public class AuthCookies {
         repo.setCookieName((secure ? "__Host-" : "") + "XSRF-TOKEN");
         repo.setCookiePath("/");
         // 만료 없는 세션 쿠키는 앱(WebView)을 강제 종료하면 사라질 수 있어 Max-Age 를 준다.
-        // 이 설정은 삭제(값 "") 때도 적용되지만, 저장소는 빈 값을 "없음"으로 보고 새 토큰을 만든다.
+        // 토큰 삭제는 SecurityConfig 에서 꺼 두었다(로그인마다 토큰을 바꾸는 세션용 전략은 JWT 구조에 맞지 않는다).
         repo.setCookieCustomizer(c -> c.secure(secure).sameSite("Lax").maxAge(ACCESS_AGE));
         return repo;
     }

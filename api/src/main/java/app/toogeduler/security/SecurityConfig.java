@@ -54,7 +54,10 @@ public class SecurityConfig {
                                 c.csrfTokenRepository(cookies.csrfRepository())
                                         .csrfTokenRequestHandler(
                                                 new CsrfTokenRequestAttributeHandler())
-                                        .requireCsrfProtectionMatcher(this::needsCsrf))
+                                        .requireCsrfProtectionMatcher(this::needsCsrf)
+                                        // 기본 전략은 "새 로그인"마다 토큰을 지운다. JwtFilter 는 요청마다 인증하므로
+                                        // 그대로 두면 인증된 응답마다 XSRF 쿠키가 빈 값이 된다.
+                                        .sessionAuthenticationStrategy((auth, req, res) -> {}))
                 .cors(c -> {})
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .securityContext(

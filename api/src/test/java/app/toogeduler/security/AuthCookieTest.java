@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import app.toogeduler.domain.User;
 import app.toogeduler.repo.UserRepository;
 import jakarta.servlet.http.Cookie;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -43,7 +45,7 @@ class AuthCookieTest {
         String register =
                 "{\"email\":\"reg@toogeduler.app\",\"name\":\"가입\",\"password\":\"password-123\"}";
         MvcResult r =
-                mvc.perform(json(post("/api/auth/register"), register))
+                mvc.perform(cookieMode(post("/api/auth/register"), register))
                         .andExpect(jsonPath("$.token").isString())
                         .andExpect(jsonPath("$.deviceToken").isString())
                         .andReturn();
@@ -65,18 +67,57 @@ class AuthCookieTest {
         String login =
                 "{\"email\":\"login@toogeduler.app\",\"password\":\"password-123\",\"deviceToken\":\"bogus\"}";
         MvcResult r =
-                mvc.perform(json(post("/api/auth/login"), login).cookie(new Cookie(DEVICE, own)))
+                mvc.perform(
+                                cookieMode(post("/api/auth/login"), login)
+                                        .cookie(new Cookie(DEVICE, own)))
                         .andExpect(jsonPath("$.token").isString())
                         .andExpect(jsonPath("$.deviceToken").value(own))
                         .andReturn();
         for (String name : new String[] {AT, DEVICE + "=" + own + ";", "tg_signed_in=1;", XSRF})
             has(r, name);
+        // 쿠키가 다른 계정의 기기 토큰이면 본문의 이 계정 기기 토큰을 쓴다.
+        String others = deviceTokens.issue(emailUser("other-device@toogeduler.app").getId());
+        mvc.perform(
+                        cookieMode(post("/api/auth/login"), login.replace("bogus", own))
+                                .cookie(new Cookie(DEVICE, others)))
+                .andExpect(jsonPath("$.deviceToken").value(own));
 
         String verifier = "cookie-test-verifier-0123456789abcdefghijklmn";
         String code = loginCodes.issue(u.getId(), OAuthLoginCodes.challengeOf(verifier));
         String exchange = String.format("{\"code\":\"%s\",\"verifier\":\"%s\"}", code, verifier);
-        r = mvc.perform(json(post("/api/auth/oauth/exchange"), exchange)).andReturn();
+        r = mvc.perform(cookieMode(post("/api/auth/oauth/exchange"), exchange)).andReturn();
         for (String name : new String[] {AT, "tg_signed_in=1;", DEVICE, XSRF}) has(r, name);
+    }
+
+    @Test
+    void clientsThatDoNotAskForCookiesGetNone() throws Exception {
+        emailUser("legacy@toogeduler.app");
+        String login = "{\"email\":\"legacy@toogeduler.app\",\"password\":\"password-123\"}";
+        MvcResult r =
+                mvc.perform(json(post("/api/auth/login"), login))
+                        .andExpect(jsonPath("$.token").isString())
+                        .andExpect(jsonPath("$.deviceToken").isString())
+                        .andReturn();
+        for (String name : new String[] {AT, "tg_signed_in", DEVICE})
+            assertNull(cookie(r, name), name + " 는 옛 클라이언트에 주지 않는다");
+    }
+
+    @Test
+    void browserKeepsAWorkingXsrfTokenAcrossAuthenticatedRequests() throws Exception {
+        emailUser("browser@toogeduler.app");
+        String login = "{\"email\":\"browser@toogeduler.app\",\"password\":\"password-123\"}";
+        Map<String, String> jar = new LinkedHashMap<>();
+        browse(jar, cookieMode(post("/api/auth/login"), login));
+        browse(jar, get("/api/auth/me"));
+        browse(
+                jar,
+                json(patch("/api/auth/me"), "{\"name\":\"브라우저\"}")
+                        .header("X-XSRF-TOKEN", jar.get(XSRF)));
+        browse(jar, get("/api/auth/me"));
+        assertFalse(jar.get(XSRF).isEmpty(), "인증된 응답이 XSRF 쿠키를 비우면 안 된다");
+        MvcResult r = browse(jar, post("/api/auth/logout").header("X-XSRF-TOKEN", jar.get(XSRF)));
+        assertEquals(204, r.getResponse().getStatus());
+        assertFalse(jar.containsKey(AT), "로그아웃하면 브라우저에서 tg_at 이 사라진다");
     }
 
     @Test
@@ -142,6 +183,10 @@ class AuthCookieTest {
         body = "{\"deviceToken\":\"forged\"}";
         r = mvc.perform(json(post("/api/auth/session"), body).header(AUTH, bearer)).andReturn();
         assertNull(cookie(r, DEVICE), "잘못된 기기 토큰은 옮기지 않는다");
+        String others = deviceTokens.issue(emailUser("session-other@toogeduler.app").getId());
+        body = "{\"deviceToken\":\"" + others + "\"}";
+        r = mvc.perform(json(post("/api/auth/session"), body).header(AUTH, bearer)).andReturn();
+        assertNull(cookie(r, DEVICE), "다른 계정의 기기 토큰은 옮기지 않는다");
         mvc.perform(post("/api/auth/session").header(AUTH, "Bearer not-a-jwt"))
                 .andExpect(status().isUnauthorized());
         // CSRF 검사에서 빠지는 경로이므로 쿠키만으로는 쓸 수 없다.
@@ -156,6 +201,28 @@ class AuthCookieTest {
     private static MockHttpServletRequestBuilder json(
             MockHttpServletRequestBuilder b, String body) {
         return b.contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private static MockHttpServletRequestBuilder cookieMode(
+            MockHttpServletRequestBuilder b, String body) {
+        return json(b, body).header(AuthCookies.MODE_HEADER, "cookie");
+    }
+
+    /** 브라우저처럼 쿠키 저장소를 들고 요청한다. 응답의 Set-Cookie 로 저장소를 고치고(Max-Age=0 이면 지움) 다음 요청에 싣는다. */
+    private MvcResult browse(Map<String, String> jar, MockHttpServletRequestBuilder b)
+            throws Exception {
+        jar.forEach((name, value) -> b.cookie(new Cookie(name, value)));
+        MvcResult r = mvc.perform(b).andReturn();
+        assertTrue(
+                r.getResponse().getStatus() < 400,
+                r.getRequest().getRequestURI() + " 실패: " + r.getResponse().getStatus());
+        for (String h : r.getResponse().getHeaders("Set-Cookie")) {
+            String pair = h.split(";", 2)[0];
+            String name = pair.substring(0, pair.indexOf('='));
+            if (h.contains("Max-Age=0")) jar.remove(name);
+            else jar.put(name, pair.substring(pair.indexOf('=') + 1));
+        }
+        return r;
     }
 
     /** prefix 로 시작하는 Set-Cookie 가 있고 attrs 를 모두 담는지 확인한다. */
