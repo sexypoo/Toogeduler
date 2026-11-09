@@ -1,14 +1,16 @@
 "use client";
+import { DeleteScopeChoice } from "./delete-scope-choice";
 import { RecurrenceUntilField, buildRule, ruleFrequency, ruleUntil } from "./recurrence-until";
 import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
 import { shouldOfferCancelAnnounce } from "@/lib/event-cancel-announce";
 import { shouldOfferMoveAnnounce } from "@/lib/event-move-announce";
+import { type DeleteChoice, deleteChoices } from "@/lib/recurrence-cut";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { format, parseISO } from "date-fns";
 import { Check, Clock3, Link2, Trash2, UserRound, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function EventModal({
   value,
@@ -18,6 +20,7 @@ export function EventModal({
   onClose,
   onSave,
   onDelete,
+  onEndSeries,
   show,
 }: {
   value: Partial<CalendarEvent>;
@@ -26,10 +29,17 @@ export function EventModal({
   remindersOff: boolean;
   onClose: () => void;
   onSave: (e: Partial<CalendarEvent>) => void;
-  onDelete: (id: number, announce: boolean) => Promise<void>;
+  onDelete: (id: number, announce: boolean, scopeChosen?: boolean) => Promise<void>;
+  onEndSeries: (occurrence: Partial<CalendarEvent>) => Promise<void>;
   show: (m: string) => void;
 }) {
-  const dialog = useDialog<HTMLFormElement>(onClose);
+  // 삭제 범위 선택 줄이 열려 있으면 Escape 는 그 줄만 닫고 모달은 남겨 둡니다.
+  const [choosingScope, setChoosingScope] = useState(false);
+  const [pendingScope, setPendingScope] = useState<DeleteChoice | null>(null);
+  const dialog = useDialog<HTMLFormElement>(() => {
+    if (!choosingScope) onClose();
+    else if (!pendingScope) setChoosingScope(false);
+  });
   const [v, setV] = useState({
     ...value,
     visibilities: value.visibilities?.length ? value.visibilities : [value.visibility || "PRIVATE"],
@@ -55,6 +65,11 @@ export function EventModal({
   const [announceCancel, setAnnounceCancel] = useState(true);
   const [deleting, setDeleting] = useState(false);
   async function remove(id: number) {
+    // 반복 일정의 첫 회차가 아니면 바로 지우지 않고 footer 자리에 삭제 범위 선택 줄을 엽니다.
+    if (deleteChoices(value).length > 1) {
+      setChoosingScope(true);
+      return;
+    }
     setDeleting(true);
     try {
       await onDelete(id, offerCancel && announceCancel);
@@ -62,6 +77,25 @@ export function EventModal({
       setDeleting(false);
     }
   }
+  // 범위를 고르면 모달을 연 시점의 값(편집 중인 초안이 아님)으로 요청합니다. 실패하면 선택 줄을 그대로 두어 다시 고를 수 있습니다.
+  async function removeScope(choice: DeleteChoice) {
+    setPendingScope(choice);
+    setDeleting(true);
+    try {
+      if (choice === "following") await onEndSeries(value);
+      else await onDelete(value.id!, offerCancel && announceCancel, true);
+    } finally {
+      setPendingScope(null);
+      setDeleting(false);
+    }
+  }
+  // 선택 줄을 닫으면 포커스를 "삭제" 버튼으로 돌려줍니다.
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const scopeWasOpen = useRef(false);
+  useEffect(() => {
+    if (scopeWasOpen.current && !choosingScope) deleteButton.current?.focus();
+    scopeWasOpen.current = choosingScope;
+  }, [choosingScope]);
   function set<K extends keyof CalendarEvent>(key: K, val: CalendarEvent[K]) {
     setV((x) => ({ ...x, [key]: val }));
   }
@@ -354,22 +388,37 @@ export function EventModal({
             </span>
           </>
         )}
-        <footer>
-          {!readOnly && v.id ? (
-            <button type="button" className="danger" disabled={deleting} onClick={() => remove(v.id!)}>
-              <Trash2 />
-              삭제
-            </button>
-          ) : (
-            <span />
-          )}
-          <div>
-            <button type="button" className="ghost" onClick={onClose}>
-              {readOnly ? "닫기" : "취소"}
-            </button>
-            {!readOnly && <button className="primary">저장</button>}
-          </div>
-        </footer>
+        {choosingScope ? (
+          <DeleteScopeChoice
+            instanceStart={value.instanceStart!}
+            pending={pendingScope}
+            onChoose={removeScope}
+            onCancel={() => setChoosingScope(false)}
+          />
+        ) : (
+          <footer>
+            {!readOnly && v.id ? (
+              <button
+                ref={deleteButton}
+                type="button"
+                className="danger"
+                disabled={deleting}
+                onClick={() => remove(v.id!)}
+              >
+                <Trash2 />
+                삭제
+              </button>
+            ) : (
+              <span />
+            )}
+            <div>
+              <button type="button" className="ghost" onClick={onClose}>
+                {readOnly ? "닫기" : "취소"}
+              </button>
+              {!readOnly && <button className="primary">저장</button>}
+            </div>
+          </footer>
+        )}
       </form>
     </div>
   );

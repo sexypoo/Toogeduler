@@ -210,6 +210,44 @@ class EventControllerTest {
     }
 
     @Test
+    void endingASeriesBeforeAnOccurrenceHidesThatOccurrenceAndLaterOnes() {
+        // 11월 4일(수) 오전 10시부터 매주. 웹의 "이 일정부터 이후 모두 삭제"는 시리즈 시작·끝은 그대로 두고
+        // UNTIL 만 11월 18일 회차 1초 전(UTC)으로 바꿔 PUT 한다.
+        OffsetDateTime seriesStart = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        event.setStartAt(seriesStart);
+        event.setEndAt(seriesStart.plusHours(1));
+        event.setRecurrenceRule("FREQ=WEEKLY");
+        when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        controller.update(
+                auth(owner),
+                10L,
+                new EventController.EventInput(
+                        "내 일정",
+                        "",
+                        "",
+                        seriesStart,
+                        seriesStart.plusHours(1),
+                        false,
+                        Set.of(Event.Visibility.PRIVATE),
+                        null,
+                        "FREQ=WEEKLY;UNTIL=20261118T005959Z",
+                        null,
+                        "#168CF2",
+                        Set.of(),
+                        null));
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2026-12-31T00:00:00+09:00");
+        when(events.ownedCalendar(1L, from, to)).thenReturn(List.of(event));
+        assertEquals(
+                List.of(
+                        OffsetDateTime.parse("2026-11-04T10:00:00+09:00"),
+                        OffsetDateTime.parse("2026-11-11T10:00:00+09:00")),
+                controller.calendar(auth(owner), from, to).stream()
+                        .map(m -> (OffsetDateTime) m.get("instanceStart"))
+                        .toList());
+    }
+
+    @Test
     void recurrenceRuleFormatIsValidated() {
         var validator = Validation.buildDefaultValidatorFactory().getValidator();
         assertFalse(validator.validate(input("FREQ=YEARLY")).isEmpty());

@@ -858,6 +858,57 @@ textarea:focus-visible {
   display: flex;
   gap: 8px;
 }
+/* 반복 일정 삭제 범위 선택 줄: footer 자리를 대신하므로 구분선·간격은 footer 와 같게 둔다. */
+.scope-choice {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 16px;
+}
+.scope-choice p {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.scope-choice button {
+  min-height: 44px;
+}
+.scope-choice .ghost {
+  justify-self: end;
+}
+/* 두 선택지 모두 파괴적이라 어느 쪽도 채우거나 강조하지 않는다. */
+.scope-option {
+  display: grid;
+  gap: 2px;
+  padding: 9px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.scope-choice .scope-option {
+  min-height: 56px;
+}
+.scope-option strong {
+  font-size: 14px;
+}
+.scope-option.all strong {
+  color: var(--danger);
+}
+/* --muted 는 흰 바탕 작은 글자에서 4.5:1 에 못 미쳐 --ink-2 를 쓴다. */
+.scope-option span {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.scope-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .ghost,
 .danger {
   height: 37px;
@@ -3771,7 +3822,8 @@ textarea:focus-visible {
     width: 22px;
     height: 22px;
   }
-  .event-modal footer {
+  .event-modal footer,
+  .scope-choice {
     margin-top: 12px;
     padding-top: 12px;
   }
