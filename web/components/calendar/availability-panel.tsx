@@ -3,6 +3,7 @@ import { InviteAlone } from "./invite-alone";
 import { fmtDate } from "./shared";
 import { personColor } from "@/components/owner-avatar";
 import { api } from "@/lib/api";
+import { emptyMembersNotice } from "@/lib/empty-members";
 import { bestBlock } from "@/lib/time";
 import type { Group, Slot } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
@@ -40,16 +41,26 @@ export function AvailabilityPanel({
   const [picked, setPicked] = useState<Slot | null>(null);
   const pickedRef = useRef<HTMLElement>(null);
   const [loading, setLoading] = useState(false);
+  // 이 기간에 일정이 하나도 없는 멤버 안내. 기간이 바뀌었을 수 있으니 찾을 때마다 지우고 새로 받는다.
+  const [notice, setNotice] = useState<string | null>(null);
   // 나 혼자인 그룹은 찾아도 내 빈 시간만 나오므로, 검색하지 않고 초대 안내만 보여 준다.
   const alone = group.members.length <= 1;
   async function search() {
     setLoading(true);
+    setNotice(null);
     const ids = required.filter((id) => group.members.some((m) => m.id === id));
     try {
-      const found: Slot[] = await api(
-        `/api/groups/${group.id}/availability/blocks?from=${from}&to=${to}&dayStart=${start}&dayEnd=${end}&minMinutes=${minutes}&timeZone=${encodeURIComponent(zone)}${ids.length ? `&required=${ids.join(",")}` : ""}`,
-      );
+      // 안내 요청이 실패해도 시간 찾기 결과는 그대로 보여준다. 둘을 같은 시점에 그려 레이아웃 밀림을 줄인다.
+      const [found, empty] = await Promise.all([
+        api<Slot[]>(
+          `/api/groups/${group.id}/availability/blocks?from=${from}&to=${to}&dayStart=${start}&dayEnd=${end}&minMinutes=${minutes}&timeZone=${encodeURIComponent(zone)}${ids.length ? `&required=${ids.join(",")}` : ""}`,
+        ),
+        api<{ memberIds: number[] }>(
+          `/api/groups/${group.id}/availability/empty-members?from=${from}&to=${to}&timeZone=${encodeURIComponent(zone)}`,
+        ).catch(() => null),
+      ]);
       setBlocks(found);
+      setNotice(empty ? emptyMembersNotice(empty.memberIds, group.members, meId) : null);
       setSearched({ from, to, start, end, minutes, required: ids });
       setPicked(bestBlock(found));
     } catch (e) {
@@ -164,6 +175,11 @@ export function AvailabilityPanel({
               </button>
             </div>
             <div className="overlap-results">
+              {notice && (
+                <p className="empty-members-note" role="status">
+                  {notice}
+                </p>
+              )}
               {!loading &&
                 blocks.length === 0 &&
                 (must ? (
