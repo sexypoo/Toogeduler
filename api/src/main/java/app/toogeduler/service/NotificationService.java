@@ -7,6 +7,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -137,6 +138,43 @@ public class NotificationService {
                                 + startSecond
                                 + ":"
                                 + user.getId());
+            }
+    }
+
+    /** 취소 알림을 보낼 그룹 하나. 일정을 지우기 전에 읽어 둔 그룹 ID·이름과 멤버 목록이다. */
+    public record CanceledGroup(Long id, String name, List<User> members) {}
+
+    /**
+     * 그룹에 공유한 일정을 지우며 "그룹 멤버에게 취소 알리기"를 고른 경우, 그 그룹의 다른 멤버에게 취소를 알린다. 일정은 이미 지워졌으므로 제목·시작 시각·그룹을
+     * 값으로 받는다. 여러 그룹에 함께 있는 사람은 앞 그룹(ID 순으로 넘겨받음) 이름으로 한 번만 받는다. 알림을 누르면 그 그룹 화면으로 간다.
+     */
+    @Transactional
+    public void announceGroupEventCanceled(
+            Long eventId,
+            String title,
+            OffsetDateTime startAt,
+            User owner,
+            List<CanceledGroup> groups) {
+        String when = startAt.atZoneSameInstant(SEOUL).format(WHEN);
+        Set<Long> notified = new HashSet<>();
+        notified.add(owner.getId());
+        for (CanceledGroup group : groups)
+            for (User user : group.members()) {
+                if (!notified.add(user.getId())) continue;
+                notify(
+                        user,
+                        Notification.Type.GROUP_EVENT,
+                        "그룹 일정이 취소됐어요",
+                        owner.getName()
+                                + "님이 "
+                                + group.name()
+                                + "의 "
+                                + when
+                                + " '"
+                                + title
+                                + "' 일정을 취소했어요.",
+                        "/?group=" + group.id(),
+                        "group-event-canceled:" + eventId + ":" + user.getId());
             }
     }
 

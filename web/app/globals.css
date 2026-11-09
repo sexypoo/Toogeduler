@@ -4931,6 +4931,10 @@ button.social.google {
   margin: 4px 0 10px;
   color: var(--teal-strong);
   font-weight: 650;
+} /* 삭제할 때의 "그룹 멤버에게 취소 알리기"(#84): 푸터 바로 위. 위험 색은 삭제 버튼에만 두고 이 줄은 본문 색. */
+.event-modal .announce-line.cancel {
+  color: var(--ink-2);
+  font-weight: 500;
 } /* 네이티브 앱에서 알림 권한이 거부된 경우에만 알림 select 아래 전체 폭으로 보이는 안내입니다. */
 .event-modal .reminder-hint {
   grid-column: 1/-1;
