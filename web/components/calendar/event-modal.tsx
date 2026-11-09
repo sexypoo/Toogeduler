@@ -2,6 +2,7 @@
 import { RecurrenceUntilField, buildRule, ruleFrequency, ruleUntil } from "./recurrence-until";
 import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
+import { shouldOfferCancelAnnounce } from "@/lib/event-cancel-announce";
 import { shouldOfferMoveAnnounce } from "@/lib/event-move-announce";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
@@ -25,7 +26,7 @@ export function EventModal({
   remindersOff: boolean;
   onClose: () => void;
   onSave: (e: Partial<CalendarEvent>) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, announce: boolean) => Promise<void>;
   show: (m: string) => void;
 }) {
   const dialog = useDialog<HTMLFormElement>(onClose);
@@ -47,6 +48,19 @@ export function EventModal({
   if (v.id && offerMove !== offeredMove) {
     setOfferedMove(offerMove);
     setV((x) => ({ ...x, announce: offerMove }));
+  }
+  // 저장된 그룹 일정을 지울 때 "그룹 멤버에게 취소 알리기"를 기본 체크로 보여 줍니다.
+  // 시간 변경 알림(v.announce, PUT 용)과 섞이지 않게 따로 두고, 모달을 열 때마다 다시 체크된 상태로 시작합니다.
+  const offerCancel = shouldOfferCancelAnnounce(value, me.id);
+  const [announceCancel, setAnnounceCancel] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  async function remove(id: number) {
+    setDeleting(true);
+    try {
+      await onDelete(id, offerCancel && announceCancel);
+    } finally {
+      setDeleting(false);
+    }
   }
   function set<K extends keyof CalendarEvent>(key: K, val: CalendarEvent[K]) {
     setV((x) => ({ ...x, [key]: val }));
@@ -323,9 +337,26 @@ export function EventModal({
             공개 링크 복사
           </button>
         )}
+        {offerCancel && (
+          <>
+            <label className="check-line announce-line cancel">
+              <input
+                type="checkbox"
+                checked={announceCancel}
+                disabled={deleting}
+                aria-describedby="cancel-announce-hint"
+                onChange={(e) => setAnnounceCancel(e.target.checked)}
+              />
+              <span>그룹 멤버에게 취소 알리기</span>
+            </label>
+            <span id="cancel-announce-hint" className="sr-only">
+              삭제하면 같은 그룹 멤버에게 일정이 취소됐다고 알려요.
+            </span>
+          </>
+        )}
         <footer>
           {!readOnly && v.id ? (
-            <button type="button" className="danger" onClick={() => onDelete(v.id!)}>
+            <button type="button" className="danger" disabled={deleting} onClick={() => remove(v.id!)}>
               <Trash2 />
               삭제
             </button>

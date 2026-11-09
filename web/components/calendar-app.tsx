@@ -12,6 +12,7 @@ import { WeekView } from "./calendar/week-view";
 import { REMINDERS_DENIED, offsetIso } from "./calendar/shared";
 import { ApiError, api } from "@/lib/api";
 import { EVENT_COLORS } from "@/lib/colors";
+import { deleteEventUrl } from "@/lib/event-cancel-announce";
 import { confirmedShareData, groupLabel } from "@/lib/event-share";
 import { shareOrCopy } from "@/lib/invite-share";
 import {
@@ -328,16 +329,16 @@ export default function CalendarApp() {
       },
     };
   }
-  async function deleteEvent(id: number) {
+  async function deleteEvent(id: number, announce: boolean) {
     if (
       events.some((e) => e.id === id && e.recurrenceRule) &&
       !window.confirm("반복 일정이에요. 모든 회차가 함께 삭제됩니다.")
     )
       return;
     try {
-      await api(`/api/events/${id}`, { method: "DELETE" });
+      await api(deleteEventUrl(id, announce), { method: "DELETE" });
       setModal(null);
-      show("일정을 삭제했어요.");
+      show(announce ? "일정을 삭제하고 그룹에 알렸어요." : "일정을 삭제했어요.");
       loadEvents();
       afterReminderChange();
     } catch (e) {

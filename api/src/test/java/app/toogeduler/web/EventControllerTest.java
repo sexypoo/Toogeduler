@@ -80,7 +80,8 @@ class EventControllerTest {
     @Test
     void anotherUserCannotDeleteEvent() {
         ApiException error =
-                assertThrows(ApiException.class, () -> controller.delete(auth(otherUser), 10L));
+                assertThrows(
+                        ApiException.class, () -> controller.delete(auth(otherUser), 10L, false));
         assertEquals(HttpStatus.FORBIDDEN, error.status);
         verify(events, never()).delete(any());
     }

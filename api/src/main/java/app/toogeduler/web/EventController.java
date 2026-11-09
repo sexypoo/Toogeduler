@@ -2,6 +2,7 @@ package app.toogeduler.web;
 
 import app.toogeduler.domain.*;
 import app.toogeduler.repo.*;
+import app.toogeduler.service.NotificationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.time.*;
@@ -106,8 +107,23 @@ public class EventController {
 
     @DeleteMapping("/api/events/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void delete(Authentication auth, @PathVariable Long id) {
-        events.delete(owned(id, ApiSupport.user(auth)));
+    void delete(
+            Authentication auth,
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean announce) {
+        Event e = owned(id, ApiSupport.user(auth));
+        // "그룹 멤버에게 취소 알리기"를 고른 그룹 공개 일정이면, 지우고 나면 그룹 연결이 사라지므로 삭제 전에 그룹과 멤버를 읽어 둔다.
+        List<NotificationService.CanceledGroup> shared =
+                announce && effectiveVisibilities(e).contains(Event.Visibility.GROUP)
+                        ? canceledGroups(e)
+                        : List.of();
+        Long eventId = e.getId();
+        String title = e.getTitle();
+        OffsetDateTime startAt = e.getStartAt();
+        events.delete(e);
+        if (!shared.isEmpty())
+            notificationService.announceGroupEventCanceled(
+                    eventId, title, startAt, e.getOwner(), shared);
     }
 
     @GetMapping("/api/public/events")
@@ -149,6 +165,21 @@ public class EventController {
         if (!e.getOwner().getId().equals(u.getId()))
             throw new ApiException(HttpStatus.FORBIDDEN, "내 일정만 수정할 수 있습니다.");
         return e;
+    }
+
+    // 여러 그룹에 함께 있는 사람이 매번 같은 그룹 이름으로 받도록 그룹 ID 순으로 넘긴다.
+    private List<NotificationService.CanceledGroup> canceledGroups(Event e) {
+        return e.getGroups().stream()
+                .sorted(Comparator.comparing(Group::getId))
+                .map(
+                        g ->
+                                new NotificationService.CanceledGroup(
+                                        g.getId(), g.getName(), memberUsers(g)))
+                .toList();
+    }
+
+    private List<User> memberUsers(Group g) {
+        return members.findByGroupId(g.getId()).stream().map(GroupMember::getUser).toList();
     }
 
     private void validate(EventInput b) {
