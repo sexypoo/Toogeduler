@@ -119,7 +119,7 @@ NEXT_PUBLIC_SHOW_DEMO=false
 
 ## 8. 주간 지표 확인
 
-API는 매주 월요일 09:00(Asia/Seoul)에 지난 7일간의 사용량을 한 줄 로그로 남깁니다. Railway의 API 서비스 → **Deployments** 또는 **Observability → Logs**에서 `weekly-metrics`로 검색하면 `weekly-metrics from=… to=… newUsers=… newGroups=… joins=… groupEvents=… activeGroups=…` 형태의 줄이 나옵니다. `newUsers`는 새 가입자, `newGroups`는 새 그룹, `joins`는 그룹장 본인을 뺀 그룹 가입, `groupEvents`는 그룹이 1개 이상 연결된 새 일정(북극성 지표 근사치), `activeGroups`는 그 일정이 1개 이상 연결된 그룹 수입니다. 기간은 `from` 이상 `to` 미만이고 시각은 UTC로 찍힙니다. 로그에는 숫자만 있고 이름·이메일·일정 제목은 없습니다. 월요일 09:00에 API가 재배포 중이었다면 그 주 로그는 남지 않습니다.
+API는 매주 월요일 09:00(Asia/Seoul)에 지난 7일간의 사용량을 한 줄 로그로 남깁니다. Railway의 API 서비스 → **Deployments** 또는 **Observability → Logs**에서 `weekly-metrics`로 검색하면 `weekly-metrics from=… to=… newUsers=… newGroups=… joins=… groupEvents=… activeGroups=… usersAtGroupLimit=… groupsAtMemberLimit=… largestGroup=…` 형태의 줄이 나옵니다. `newUsers`는 새 가입자, `newGroups`는 새 그룹, `joins`는 그룹장 본인을 뺀 그룹 가입, `groupEvents`는 그룹이 1개 이상 연결된 새 일정(북극성 지표 근사치), `activeGroups`는 그 일정이 1개 이상 연결된 그룹 수입니다. 기간은 `from` 이상 `to` 미만이고 시각은 UTC로 찍힙니다. 뒤의 세 값(`usersAtGroupLimit`, `groupsAtMemberLimit`, `largestGroup`)은 7일 기간이 아니라 집계가 돈 시점의 서비스 전체 스냅샷입니다. `usersAtGroupLimit`는 그룹 3개 이상에 속한 사용자 수, `groupsAtMemberLimit`는 그룹장을 포함해 멤버가 10명 이상인 그룹 수, `largestGroup`은 가장 큰 그룹의 멤버 수(그룹이 없으면 0)입니다. 기준값은 무료 한도 가설(그룹 3개·그룹당 10명)이며, 측정용일 뿐 한도를 강제하지 않습니다. 로그에는 숫자만 있고 이름·이메일·일정 제목은 없습니다. 월요일 09:00에 API가 재배포 중이었다면 그 주 로그는 남지 않습니다.
 
 ## 9. DB 구조 바꾸기 (Flyway)
 
