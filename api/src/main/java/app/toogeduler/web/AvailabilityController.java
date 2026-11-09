@@ -117,6 +117,43 @@ public class AvailabilityController {
                 .toList();
     }
 
+    public record EmptyMembers(List<Long> memberIds) {}
+
+    /**
+     * 기간 안에 겹치는 일정(반복 일정 회차 포함)이 하나도 없는 멤버 id. 아직 캘린더를 안 채운 사람을 그룹장에게 알려주려는 것이다. 바쁜 시간이 없다는 사실은 이미
+     * 시간 찾기 결과로 알 수 있으므로 id 외의 이름·일정 내용은 싣지 않는다.
+     */
+    @GetMapping("/empty-members")
+    EmptyMembers emptyMembers(
+            Authentication auth,
+            @PathVariable Long groupId,
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @RequestParam(defaultValue = "Asia/Seoul") String timeZone) {
+        checkSearch(auth, groupId, from, to);
+        ZoneId zone = ZoneId.of(timeZone);
+        List<Long> ids =
+                members.findByGroupId(groupId).stream().map(m -> m.getUser().getId()).toList();
+        OffsetDateTime rangeFrom = from.atStartOfDay(zone).toOffsetDateTime();
+        OffsetDateTime rangeTo = to.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
+        Set<Long> busy = new HashSet<>();
+        for (Event e : events.busyEvents(ids, rangeFrom, rangeTo))
+            if (!EventController.occurrenceRanges(e, rangeFrom, rangeTo).isEmpty())
+                busy.add(e.getOwner().getId());
+        return new EmptyMembers(ids.stream().filter(id -> !busy.contains(id)).toList());
+    }
+
+    /** 시간 찾기 요청 공통 확인: 그룹이 있어야 하고(404), 요청자가 멤버여야 하며(403), 기간은 최대 2개월(400). */
+    private void checkSearch(Authentication auth, Long groupId, LocalDate from, LocalDate to) {
+        User current = ApiSupport.user(auth);
+        groups.findById(groupId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."));
+        if (!members.existsByGroupIdAndUserId(groupId, current.getId()))
+            throw new ApiException(HttpStatus.FORBIDDEN, "그룹 멤버만 찾을 수 있습니다.");
+        if (to.isBefore(from) || to.isAfter(from.plusMonths(2)))
+            throw new ApiException(HttpStatus.BAD_REQUEST, "검색 기간은 최대 2개월입니다.");
+    }
+
     /**
      * 각 날짜의 [dayStart, dayEnd) 안에서 stepMinutes 길이의 구간마다 비어 있는 멤버를 계산한다. 지난 시각, 아무도 안 되는 구간, 필수 멤버 중
      * 누가 바쁜 구간은 뺀다.
@@ -132,13 +169,7 @@ public class AvailabilityController {
             int minMinutes,
             String timeZone,
             List<Long> required) {
-        User current = ApiSupport.user(auth);
-        groups.findById(groupId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."));
-        if (!members.existsByGroupIdAndUserId(groupId, current.getId()))
-            throw new ApiException(HttpStatus.FORBIDDEN, "그룹 멤버만 찾을 수 있습니다.");
-        if (to.isBefore(from) || to.isAfter(from.plusMonths(2)))
-            throw new ApiException(HttpStatus.BAD_REQUEST, "검색 기간은 최대 2개월입니다.");
+        checkSearch(auth, groupId, from, to);
         if (minMinutes < 30 || minMinutes > 480)
             throw new ApiException(HttpStatus.BAD_REQUEST, "최소 시간은 30분에서 8시간 사이여야 합니다.");
         ZoneId zone = ZoneId.of(timeZone);

@@ -344,6 +344,112 @@ class AvailabilityControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, error.status);
     }
 
+    @Test
+    void emptyMembersAreThoseWithNoEventInTheRange() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = threePeople(groups, members, events);
+        // 소라만 기간 안에 비공개 일정이 있다.
+        Event secret =
+                busy(user(2L, "소라"), "2026-10-09T10:00:00+09:00", "2026-10-09T12:00:00+09:00");
+        secret.setTitle("비밀 약속");
+        secret.setVisibility(Event.Visibility.PRIVATE);
+        when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of(secret));
+
+        AvailabilityController.EmptyMembers result =
+                controller.emptyMembers(
+                        new UsernamePasswordAuthenticationToken(user(1L, "나"), null, List.of()),
+                        5L,
+                        LocalDate.of(2026, 10, 9),
+                        LocalDate.of(2026, 10, 15),
+                        "Asia/Seoul");
+
+        assertEquals(List.of(1L, 3L), result.memberIds(), "요청자 본인도 일정이 없으면 포함한다");
+        assertFalse(result.toString().contains("비밀 약속"), "다른 멤버의 일정 내용이 실리면 안 된다");
+        assertFalse(result.toString().contains("PRIVATE"), "비공개 여부가 실리면 안 된다");
+        assertEquals(
+                "EmptyMembers[memberIds=[1, 3]]", result.toString(), "응답에는 일정 없는 멤버 id 말고 아무것도 없다");
+    }
+
+    @Test
+    void emptyMembersCountOnlyEventsInsideTheRangeIncludingRecurringOccurrences() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = threePeople(groups, members, events);
+        // 소라는 기간 밖(10월 1일) 일정만 있다.
+        Event before =
+                busy(user(2L, "소라"), "2026-10-01T10:00:00+09:00", "2026-10-01T12:00:00+09:00");
+        // 민지는 9월 30일(수)에 시작한 매주 반복 일정뿐인데, 10월 14일(수) 회차가 기간 안에 걸린다.
+        Event club = busy(user(3L, "민지"), "2026-09-30T19:00:00+09:00", "2026-09-30T21:00:00+09:00");
+        club.setRecurrenceRule("FREQ=WEEKLY");
+        when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of(before, club));
+
+        AvailabilityController.EmptyMembers result =
+                controller.emptyMembers(
+                        new UsernamePasswordAuthenticationToken(user(1L, "나"), null, List.of()),
+                        5L,
+                        LocalDate.of(2026, 10, 9),
+                        LocalDate.of(2026, 10, 15),
+                        "Asia/Seoul");
+
+        assertEquals(List.of(1L, 2L), result.memberIds());
+    }
+
+    @Test
+    void emptyMembersRejectsNonMembersLikeAvailability() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = threePeople(groups, members, events);
+        when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of());
+        var stranger = new UsernamePasswordAuthenticationToken(user(99L, "남"), null, List.of());
+        LocalDate day = LocalDate.of(2026, 10, 9);
+
+        ApiException empty =
+                assertThrows(
+                        ApiException.class,
+                        () -> controller.emptyMembers(stranger, 5L, day, day, "Asia/Seoul"));
+        ApiException find =
+                assertThrows(
+                        ApiException.class,
+                        () ->
+                                controller.find(
+                                        stranger,
+                                        5L,
+                                        day,
+                                        day,
+                                        LocalTime.of(9, 0),
+                                        LocalTime.of(22, 0),
+                                        60,
+                                        "Asia/Seoul"));
+        assertEquals(HttpStatus.FORBIDDEN, empty.status);
+        assertEquals(find.status, empty.status);
+        verify(events, never()).busyEvents(anyCollection(), any(), any());
+    }
+
+    @Test
+    void emptyMembersRejectsRangesLongerThanTwoMonths() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = threePeople(groups, members, events);
+        var auth = new UsernamePasswordAuthenticationToken(user(1L, "나"), null, List.of());
+
+        ApiException error =
+                assertThrows(
+                        ApiException.class,
+                        () ->
+                                controller.emptyMembers(
+                                        auth,
+                                        5L,
+                                        LocalDate.of(2026, 10, 9),
+                                        LocalDate.of(2026, 12, 10),
+                                        "Asia/Seoul"));
+        assertEquals(HttpStatus.BAD_REQUEST, error.status);
+    }
+
     private static AvailabilityController threePeople(
             GroupRepository groups, GroupMemberRepository members, EventRepository events) {
         AvailabilityController controller = new AvailabilityController(groups, members, events);
