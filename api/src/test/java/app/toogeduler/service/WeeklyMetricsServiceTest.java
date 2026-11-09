@@ -113,12 +113,87 @@ class WeeklyMetricsServiceTest {
         assertThat(line)
                 .isEqualTo(
                         "weekly-metrics from=2026-10-19T00:00:00Z to=2026-10-26T00:00:00Z"
-                                + " newUsers=1 newGroups=1 joins=0 groupEvents=1 activeGroups=1");
+                                + " newUsers=1 newGroups=1 joins=0 groupEvents=1 activeGroups=1"
+                                + " usersAtGroupLimit=0 groupsAtMemberLimit=0 largestGroup=1");
         assertThat(output.getOut()).contains(line);
         for (String pii : new String[] {"secret.person@example.com", "홍길동", "비밀 모임", "병원 진료 예약"}) {
             assertThat(line).doesNotContain(pii);
             assertThat(output.getOut()).doesNotContain(pii);
         }
+    }
+
+    @Test
+    void countsUsersInAtLeastThreeGroups() {
+        User owner = user("owner@example.com", "그룹장", OUTSIDE);
+        User inThree = user("three@example.com", "셋", OUTSIDE);
+        User inTwo = user("two@example.com", "둘", OUTSIDE);
+        for (int i = 0; i < 3; i++) {
+            Group g = group(owner, "그룹" + i, "t-limit-" + i, OUTSIDE);
+            member(g, inThree, GroupMember.Role.MEMBER, OUTSIDE);
+            if (i < 2) member(g, inTwo, GroupMember.Role.MEMBER, OUTSIDE);
+        }
+        em.flush();
+
+        WeeklyMetricsService.WeeklyMetrics m = service.compute(NOW);
+
+        // 그룹장은 OWNER 멤버십이 없으므로 inThree만 3개 그룹에 속한다.
+        assertThat(m.usersAtGroupLimit()).isEqualTo(1);
+    }
+
+    @Test
+    void countsGroupsWithAtLeastTenMembersAndTheLargestGroup() {
+        User owner = user("owner@example.com", "그룹장", OUTSIDE);
+        Group ten = group(owner, "열 명", "t-ten", OUTSIDE);
+        Group nine = group(owner, "아홉 명", "t-nine", OUTSIDE);
+        for (int i = 0; i < 10; i++) {
+            User u = user("m" + i + "@example.com", "멤버" + i, OUTSIDE);
+            member(ten, u, GroupMember.Role.MEMBER, OUTSIDE);
+            if (i < 9) member(nine, u, GroupMember.Role.MEMBER, OUTSIDE);
+        }
+        em.flush();
+
+        WeeklyMetricsService.WeeklyMetrics m = service.compute(NOW);
+
+        assertThat(m.groupsAtMemberLimit()).isEqualTo(1);
+        assertThat(m.largestGroup()).isEqualTo(10);
+    }
+
+    @Test
+    void limitMetricsAreZeroWithoutGroups() {
+        user("alone@example.com", "혼자", INSIDE);
+        em.flush();
+
+        WeeklyMetricsService.WeeklyMetrics m = service.compute(NOW);
+
+        assertThat(m.usersAtGroupLimit()).isZero();
+        assertThat(m.groupsAtMemberLimit()).isZero();
+        assertThat(m.largestGroup()).isZero();
+    }
+
+    @Test
+    void limitKeysComeAfterTheExistingKeysInTheLogLine() {
+        String line = service.compute(NOW).toLogLine();
+
+        assertThat(line).startsWith("weekly-metrics from=");
+        String[] keys = {
+            "from=",
+            "to=",
+            "newUsers=",
+            "newGroups=",
+            "joins=",
+            "groupEvents=",
+            "activeGroups=",
+            "usersAtGroupLimit=",
+            "groupsAtMemberLimit=",
+            "largestGroup="
+        };
+        int last = -1;
+        for (String key : keys) {
+            int at = line.indexOf(" " + key);
+            assertThat(at).as(key).isGreaterThan(last);
+            last = at;
+        }
+        assertThat(line).endsWith(" largestGroup=0");
     }
 
     private User user(String email, String name, Instant createdAt) {

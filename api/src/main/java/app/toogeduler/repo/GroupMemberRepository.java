@@ -24,4 +24,12 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     @Query(
             "select count(m) from GroupMember m where m.role = 'MEMBER' and m.joinedAt >= :from and m.joinedAt < :to")
     long countJoinsBetween(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** 사용자마다 속한 그룹 수. 멤버십이 없는 사용자는 결과에 없다. */
+    @Query("select count(m) from GroupMember m group by m.user.id")
+    List<Long> countGroupsPerUser();
+
+    /** 그룹마다 멤버 수(그룹장 포함). 멤버가 없는 그룹은 결과에 없다. */
+    @Query("select count(m) from GroupMember m group by m.group.id")
+    List<Long> countMembersPerGroup();
 }
