@@ -5035,7 +5035,7 @@ button.social.google {
   padding: 22px 25px 30px;
 }
 /* 이 기간에 일정이 하나도 없는 멤버 안내. 경고가 아니라 참고라서 카드·배경 없이 하단 선 하나로 결과와 나눈다. --muted 는 4.5:1 미달이라 --ink-2. */
-.empty-members-note {
+.overlap-results .empty-members-note {
   padding: 0 0 14px;
   margin: 0 0 18px;
   border-bottom: 1px solid var(--line);
