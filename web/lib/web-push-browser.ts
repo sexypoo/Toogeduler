@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { api, token } from "@/lib/api";
+import { api } from "@/lib/api";
 import { settleWithin, unsubscribeOnLogout, type PushEnvironment } from "@/lib/web-push";
 
 // 서비스 워커가 활성화되기를 기다리는 최대 시간입니다. 넘기면 푸시 행을 숨깁니다.
@@ -27,11 +27,8 @@ async function readyPushManager(container: ServiceWorkerContainer) {
   return (await settleWithin(container.ready, READY_TIMEOUT_MS)).pushManager;
 }
 
-// 로그아웃 직전에 부릅니다. 토큰을 지운 뒤에도 서버 삭제 요청이 이 계정으로 가도록 지금 토큰을 붙잡아 둡니다.
+// 로그아웃 직전에 부릅니다. 서버 삭제 요청은 로그인 쿠키로 인증되므로 로그아웃 요청보다 먼저 끝나야 합니다.
 export function unsubscribeBrowserPush() {
   if (typeof window === "undefined") return Promise.resolve();
-  const authToken = token();
-  const request: PushEnvironment["request"] = (path, init) =>
-    api(path, { ...init, headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined });
-  return unsubscribeOnLogout(browserPushEnvironment(request));
+  return unsubscribeOnLogout(browserPushEnvironment());
 }

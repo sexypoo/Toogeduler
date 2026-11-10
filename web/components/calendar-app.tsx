@@ -16,15 +16,8 @@ import { deleteEventUrl } from "@/lib/event-cancel-announce";
 import { confirmedShareData, groupLabel } from "@/lib/event-share";
 import { shareOrCopy } from "@/lib/invite-share";
 import { ruleEndingBefore } from "@/lib/recurrence-cut";
-import {
-  askReminderPermissionOnce,
-  cancelAllReminders,
-  onAppForeground,
-  remindersBlocked,
-  syncReminders,
-} from "@/lib/native-reminders";
-import { clearBrowserPwaCaches } from "@/lib/pwa";
-import { unsubscribeBrowserPush } from "@/lib/web-push-browser";
+import { askReminderPermissionOnce, onAppForeground, remindersBlocked, syncReminders } from "@/lib/native-reminders";
+import { SIGN_OUT_FAILED, signOutDevice } from "@/lib/sign-out";
 import { shiftSeries } from "@/lib/time";
 import { viewerZone } from "@/lib/zoned-time";
 import type { AppNotification, CalendarEvent, Group, Slot, User } from "@/lib/types";
@@ -67,6 +60,7 @@ export default function CalendarApp() {
   const [remindersOff, setRemindersOff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
   const toastTimer = useRef(0);
   const eventsRequest = useRef(0);
   // notice 는 길게 읽어야 하는 안내(알림 권한 거부)라 5초 동안 종 아이콘과 함께 보여줍니다.
@@ -140,10 +134,8 @@ export default function CalendarApp() {
       else setGroupId((x) => x ?? g[0]?.id ?? null);
       openLinkedEvent(params);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        localStorage.removeItem("toogeduler_token");
-        router.replace("/login");
-      } else
+      if (e instanceof ApiError && e.status === 401) router.replace("/login");
+      else
         setLoadError(
           e instanceof Error && e instanceof ApiError
             ? e.message
@@ -226,12 +218,15 @@ export default function CalendarApp() {
       announce: true,
     });
   }
-  function logout() {
-    cancelAllReminders();
-    unsubscribeBrowserPush();
-    clearBrowserPwaCaches();
-    localStorage.removeItem("toogeduler_token");
-    router.push("/login");
+  async function logout() {
+    setSigningOut(true);
+    try {
+      await signOutDevice();
+      router.push("/login");
+    } catch {
+      show(SIGN_OUT_FAILED, true);
+      setSigningOut(false);
+    }
   }
   function newAt(date?: Date) {
     const now = new Date();
@@ -420,6 +415,7 @@ export default function CalendarApp() {
         open={mobileNav}
         close={() => setMobileNav(false)}
         logout={logout}
+        signingOut={signingOut}
         onCreateGroup={() => router.push("/groups/new")}
         onPublic={() => router.push("/public")}
         onProfile={() => router.push("/mypage")}

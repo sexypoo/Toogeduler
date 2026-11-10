@@ -1,6 +1,7 @@
 "use client";
 import { BrandMark } from "@/components/brand-mark";
-import { useEffect, useState } from "react";
+import { Toast } from "@/components/calendar/toast";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -16,9 +17,10 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { api, token, ApiError } from "@/lib/api";
+import { api, signedIn, ApiError } from "@/lib/api";
 import { cancelAllReminders } from "@/lib/native-reminders";
 import { clearBrowserPwaCaches } from "@/lib/pwa";
+import { SIGN_OUT_FAILED, signOutDevice } from "@/lib/sign-out";
 import { unsubscribeBrowserPush } from "@/lib/web-push-browser";
 import type { User, UserStats } from "@/lib/types";
 
@@ -36,8 +38,11 @@ export default function MyPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef(0);
   useEffect(() => {
-    if (!token()) {
+    if (!signedIn()) {
       router.replace("/login");
       return;
     }
@@ -51,11 +56,8 @@ export default function MyPage() {
           .catch(() => setStats({ eventCount: 0, groupCount: 0, friendCount: 0 }));
       })
       .catch((e) => {
-        if (e instanceof ApiError && e.status === 401) {
-          localStorage.removeItem("toogeduler_token");
-          router.replace("/login");
-        } else
-          setLoadError(e instanceof ApiError ? e.message : "서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.");
+        if (e instanceof ApiError && e.status === 401) router.replace("/login");
+        else setLoadError(e instanceof ApiError ? e.message : "서버에 연결하지 못했어요. 인터넷 연결을 확인해주세요.");
       });
   }, [router]);
   async function save(e: React.FormEvent) {
@@ -73,12 +75,20 @@ export default function MyPage() {
       setLoading(false);
     }
   }
-  function logout() {
-    cancelAllReminders();
-    unsubscribeBrowserPush();
-    clearBrowserPwaCaches();
-    localStorage.removeItem("toogeduler_token");
-    router.push("/login");
+  async function logout() {
+    setSigningOut(true);
+    try {
+      await signOutDevice();
+      router.push("/login");
+    } catch {
+      setToast(SIGN_OUT_FAILED);
+      holdToast(false);
+      setSigningOut(false);
+    }
+  }
+  function holdToast(paused: boolean) {
+    window.clearTimeout(toastTimer.current);
+    if (!paused) toastTimer.current = window.setTimeout(() => setToast(""), 5000);
   }
   async function deleteAccount(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +99,6 @@ export default function MyPage() {
       cancelAllReminders();
       unsubscribeBrowserPush();
       clearBrowserPwaCaches();
-      localStorage.removeItem("toogeduler_token");
       router.replace("/login?deleted=1");
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : "계정을 삭제하지 못했습니다.");
@@ -123,7 +132,7 @@ export default function MyPage() {
           <BrandMark />
           Toogeduler
         </div>
-        <button className="feed-login logout-link" onClick={logout}>
+        <button className="feed-login logout-link" onClick={logout} disabled={signingOut} aria-busy={signingOut}>
           <LogOut />
           로그아웃
         </button>
@@ -304,6 +313,7 @@ export default function MyPage() {
           </p>
         </section>
       </section>
+      {toast && <Toast message={toast} notice action={null} hold={holdToast} close={() => setToast("")} />}
     </main>
   );
 }

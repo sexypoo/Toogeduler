@@ -6,7 +6,7 @@ import { ColorPicker } from "@/components/color-picker";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Copy, Link2, UsersRound } from "lucide-react";
-import { api, token } from "@/lib/api";
+import { api, signedIn } from "@/lib/api";
 import type { Group } from "@/lib/types";
 
 export default function NewGroupPage() {
@@ -19,7 +19,7 @@ export default function NewGroupPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!token()) router.replace("/login");
+    if (!signedIn()) router.replace("/login");
   }, [router]);
 
   async function submit(e: React.FormEvent) {

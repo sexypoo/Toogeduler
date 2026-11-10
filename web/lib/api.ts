@@ -9,29 +9,78 @@ const OAUTH_ORIGIN = configuredOauth || (process.env.NODE_ENV === "production" ?
 const OAUTH_READY = OAUTH_ORIGIN !== "";
 
 // 상태 코드를 함께 담아, 호출하는 쪽이 401(로그인 만료)과 일시적인 오류를 구분할 수 있게 합니다.
+// 매개변수 속성(public status) 대신 필드를 써서 node --test 의 타입 제거만으로 불러올 수 있게 합니다.
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
+  status: number;
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
     this.name = "ApiError";
   }
 }
-export function token() {
-  return typeof window === "undefined" ? null : localStorage.getItem("toogeduler_token");
+// 로그인 토큰은 API 가 내려주는 HttpOnly 쿠키에만 있습니다(SEC-011, docs/AUTH_COOKIE_DESIGN.md). 아래 둘은 전환 전 웹이 남긴 키입니다.
+const LEGACY_TOKEN = "toogeduler_token";
+const LEGACY_DEVICE = "toogeduler_device";
+const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+function cookie(name: string) {
+  const prefix = `${name}=`;
+  const found = document.cookie.split("; ").find((c) => c.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : null;
 }
+
+// 서버 왕복 없이 로그인 여부를 아는 신호입니다. 진짜 판단은 서버의 401 입니다.
+// 옛 토큰이 남아 있으면 첫 요청 전에 쿠키로 옮기므로 로그인 상태로 봅니다.
+export function signedIn() {
+  if (typeof window === "undefined") return false;
+  return cookie("tg_signed_in") === "1" || localStorage.getItem(LEGACY_TOKEN) !== null;
+}
+
+const RETRYABLE = (status: number) => status >= 500 || status === 408 || status === 429;
+
+let upgrade: Promise<void> | null = null;
+// 결정 4: 옛 localStorage 토큰을 한 번 쿠키로 바꿉니다. 성공이나 4xx 면 두 키를 지우고,
+// 다시 해볼 만한 실패(네트워크 오류·5xx·408·429)면 남겨 두고 실패시킵니다.
+// 400·403·404 처럼 다시 해도 같은 응답이면 키를 남겨 두는 순간 첫 화면이 계속 막히기 때문입니다.
+// 첫 데이터 요청이 쿠키 없이 나가 401 로 로그인 화면에 튕기지 않도록 api() 가 이것을 먼저 기다립니다.
+function upgradeLegacySession() {
+  if (typeof window === "undefined" || !localStorage.getItem(LEGACY_TOKEN)) return Promise.resolve();
+  upgrade ??= (async () => {
+    const res = await fetch(`${API}/api/auth/session`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem(LEGACY_TOKEN)}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ deviceToken: localStorage.getItem(LEGACY_DEVICE) }),
+    });
+    if (RETRYABLE(res.status)) throw new Error(`session upgrade ${res.status}`);
+    localStorage.removeItem(LEGACY_TOKEN);
+    localStorage.removeItem(LEGACY_DEVICE);
+  })().finally(() => {
+    upgrade = null;
+  });
+  return upgrade;
+}
+
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  await upgradeLegacySession();
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
-  const value = token();
-  if (value) headers.set("Authorization", `Bearer ${value}`);
+  // 로그인·가입·소셜 교환 응답이 쿠키를 내려주도록 요청합니다(AuthCookies.MODE_HEADER).
+  headers.set("X-Auth-Mode", "cookie");
+  // CSRF 이중 제출. 쿠키 이름은 운영이 `__Host-XSRF-TOKEN`, http 개발 환경이 `XSRF-TOKEN` 입니다.
+  const xsrf = cookie("__Host-XSRF-TOKEN") ?? cookie("XSRF-TOKEN");
+  if (xsrf && UNSAFE_METHODS.has((options.method ?? "GET").toUpperCase())) headers.set("X-XSRF-TOKEN", xsrf);
   const res = await fetch(`${API}${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.message || "요청을 처리하지 못했습니다.");
+    // 서버 메시지 없는 403 은 대개 CSRF 쿠키가 아직 없던 요청입니다. 화면을 새로 불러오면 쿠키를 받습니다.
+    const fallback = res.status === 403 ? "화면을 새로 불러온 뒤 다시 해주세요." : "요청을 처리하지 못했습니다.";
+    throw new ApiError(res.status, body.message || fallback);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
+
 export { API, OAUTH_ORIGIN, OAUTH_READY };
