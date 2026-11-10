@@ -83,6 +83,25 @@ test("옛 토큰 전환이 401 이면 키를 지우고, 네트워크 오류면 �
   assert.equal(store.get("toogeduler_token"), "old");
 });
 
+test("옛 토큰 전환이 404 면 키를 지우고 진행한다", async () => {
+  store.set("toogeduler_token", "old");
+  store.set("toogeduler_device", "dev");
+  respond = (c) => new Response(null, { status: c.url.endsWith("/session") ? 404 : 204 });
+  await api("/api/auth/me");
+  assert.equal(store.size, 0);
+  assert.equal(calls.at(-1)!.url, "/backend/api/auth/me");
+});
+
+test("옛 토큰 전환이 503 이면 키를 남겨 두고 실패한다", async () => {
+  store.set("toogeduler_token", "old");
+  store.set("toogeduler_device", "dev");
+  respond = () => new Response(null, { status: 503 });
+  await assert.rejects(api("/api/auth/me"), /session upgrade 503/);
+  assert.equal(calls.length, 1);
+  assert.equal(store.get("toogeduler_token"), "old");
+  assert.equal(store.get("toogeduler_device"), "dev");
+});
+
 test("메시지 없는 403 은 새로고침 안내로 바꾼다", async () => {
   respond = () => new Response("{}", { status: 403 });
   await assert.rejects(api("/api/events", { method: "POST", body: "{}" }), (e: unknown) => {

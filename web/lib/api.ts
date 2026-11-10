@@ -36,8 +36,12 @@ export function signedIn() {
   return cookie("tg_signed_in") === "1" || localStorage.getItem(LEGACY_TOKEN) !== null;
 }
 
+const RETRYABLE = (status: number) => status >= 500 || status === 408 || status === 429;
+
 let upgrade: Promise<void> | null = null;
-// 결정 4: 옛 localStorage 토큰을 한 번 쿠키로 바꿉니다. 성공·401 이면 두 키를 지우고, 네트워크 오류면 남겨 두고 실패시킵니다.
+// 결정 4: 옛 localStorage 토큰을 한 번 쿠키로 바꿉니다. 성공이나 4xx 면 두 키를 지우고,
+// 다시 해볼 만한 실패(네트워크 오류·5xx·408·429)면 남겨 두고 실패시킵니다.
+// 400·403·404 처럼 다시 해도 같은 응답이면 키를 남겨 두는 순간 첫 화면이 계속 막히기 때문입니다.
 // 첫 데이터 요청이 쿠키 없이 나가 401 로 로그인 화면에 튕기지 않도록 api() 가 이것을 먼저 기다립니다.
 function upgradeLegacySession() {
   if (typeof window === "undefined" || !localStorage.getItem(LEGACY_TOKEN)) return Promise.resolve();
@@ -50,7 +54,7 @@ function upgradeLegacySession() {
       },
       body: JSON.stringify({ deviceToken: localStorage.getItem(LEGACY_DEVICE) }),
     });
-    if (!res.ok && res.status !== 401) throw new Error(`session upgrade ${res.status}`);
+    if (RETRYABLE(res.status)) throw new Error(`session upgrade ${res.status}`);
     localStorage.removeItem(LEGACY_TOKEN);
     localStorage.removeItem(LEGACY_DEVICE);
   })().finally(() => {
