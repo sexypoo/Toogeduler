@@ -947,6 +947,7 @@ textarea:focus-visible {
   font-size: 13.5px;
 }
 .toast svg {
+  flex-shrink: 0;
   color: #53b7d6;
 }
 /* 확정 안내 공유(#73): 토스트 배경이 이미 --ink 라 버튼은 테두리만 두고, 버튼이 토스트 높이를 채운다. */
@@ -3658,8 +3659,8 @@ textarea:focus-visible {
   }
   .toast {
     bottom: calc(20px + var(--safe-bottom));
+    width: max-content;
     max-width: calc(100vw - 24px);
-    white-space: nowrap;
   }
   .toast.has-action {
     padding: 4px 6px 4px 14px;

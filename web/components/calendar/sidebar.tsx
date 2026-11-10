@@ -14,6 +14,7 @@ export function Sidebar({
   open,
   close,
   logout,
+  signingOut,
   onCreateGroup,
   onPublic,
   onProfile,
@@ -27,6 +28,7 @@ export function Sidebar({
   open: boolean;
   close: () => void;
   logout: () => void;
+  signingOut: boolean;
   onCreateGroup: () => void;
   onPublic: () => void;
   onProfile: () => void;
@@ -119,7 +121,7 @@ export function Sidebar({
             <b>{me.name}</b>
             <small>{me.email}</small>
           </button>
-          <button onClick={logout} title="로그아웃" aria-label="로그아웃">
+          <button onClick={logout} disabled={signingOut} aria-busy={signingOut} title="로그아웃" aria-label="로그아웃">
             <LogOut />
           </button>
         </div>

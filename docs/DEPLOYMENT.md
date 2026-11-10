@@ -83,6 +83,7 @@ NEXT_PUBLIC_SHOW_DEMO=false
 ```
 
 `NEXT_PUBLIC_API_URL`은 설정하지 않습니다. 브라우저는 같은 출처의 `/backend`를 호출하고, Vercel의 Next.js rewrite가 Railway API로 전달합니다.
+로그인 쿠키(`__Host-tg_at` 등)는 웹 호스트의 first-party 쿠키라서, `NEXT_PUBLIC_API_URL`에 `https://api.<YOUR_DOMAIN>`을 직접 넣으면 쿠키가 실리지 않아 로그인이 동작하지 않습니다(`docs/AUTH_COOKIE_DESIGN.md` 결정 1).
 
 5. 배포한 뒤 Vercel 기본 도메인에서 로그인 화면과 `/backend/actuator/health`를 확인합니다.
 
