@@ -15,7 +15,7 @@ import { EVENT_COLORS } from "@/lib/colors";
 import { deleteEventUrl } from "@/lib/event-cancel-announce";
 import { confirmedShareData, groupLabel } from "@/lib/event-share";
 import { shareOrCopy } from "@/lib/invite-share";
-import { ruleEndingBefore } from "@/lib/recurrence-cut";
+import { ruleEndingBefore, splitFollowing } from "@/lib/recurrence-cut";
 import {
   askReminderPermissionOnce,
   cancelAllReminders,
@@ -64,6 +64,7 @@ export default function CalendarApp() {
   const [toast, setToast] = useState("");
   const [toastNotice, setToastNotice] = useState(false);
   const [toastAction, setToastAction] = useState<ToastAction | null>(null);
+  const [toastAlert, setToastAlert] = useState(false);
   const [remindersOff, setRemindersOff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -80,10 +81,17 @@ export default function CalendarApp() {
       setToast(message);
       setToastNotice(notice);
       setToastAction(action ?? null);
+      setToastAlert(false);
       holdToast(false, action ? 8000 : notice ? 5000 : 2400);
     },
     [holdToast],
   );
+  // 실패 안내는 role="alert" 로 바로 읽히게 하고, 읽을 시간이 필요해 평소보다 길게 보여 줍니다.
+  function showAlert(message: string, ms = 5000) {
+    show(message);
+    setToastAlert(true);
+    holdToast(false, ms);
+  }
   const hideToast = useCallback(() => {
     window.clearTimeout(toastTimer.current);
     setToast("");
@@ -368,6 +376,40 @@ export default function CalendarApp() {
       show(e instanceof Error ? e.message : "반복을 끝내지 못했어요. 잠시 후 다시 시도해 주세요.");
     }
   }
+  // "이 일정부터 이후 수정": 원래 시리즈를 이 회차 직전에서 끝낸(PUT) 뒤, 이 회차부터 고친 값으로 새 시리즈를 만듭니다(POST).
+  // 새 시리즈를 못 만들면 원래 규칙으로 한 번 되돌립니다. 실패해도 모달은 남겨 입력을 잃지 않게 하되, 되돌리기까지 실패하면 닫고 새로 불러옵니다.
+  async function saveFollowing(original: Partial<CalendarEvent>, edited: Partial<CalendarEvent>) {
+    const { cut, next } = splitFollowing(original, edited);
+    const put = (body: Partial<CalendarEvent>) =>
+      api(`/api/events/${original.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ ...body, groupIds: body.groupIds || [] }),
+      });
+    try {
+      await put(cut);
+    } catch {
+      showAlert("바꾸지 못했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    try {
+      const body = { ...next, startAt: offsetIso(next.startAt!), endAt: offsetIso(next.endAt!) };
+      await api("/api/events", { method: "POST", body: JSON.stringify({ ...body, groupIds: body.groupIds || [] }) });
+    } catch {
+      try {
+        await put({ ...cut, recurrenceRule: original.recurrenceRule });
+        showAlert("새 일정을 만들지 못해서 원래대로 되돌렸어요. 다시 시도해 주세요.");
+      } catch {
+        setModal(null);
+        showAlert("일부만 바뀌었어요. 반복이 이 회차 전에 끝나 있을 수 있어요. 일정을 확인해 주세요.", 10000);
+        loadEvents();
+      }
+      return;
+    }
+    setModal(null);
+    show("이 일정부터 바꿨어요.");
+    loadEvents();
+    afterReminderChange((edited.reminderMinutes || 0) > 0);
+  }
   async function moveEvent(event: CalendarEvent, start: Date) {
     const duration = parseISO(event.endAt).getTime() - parseISO(event.startAt).getTime();
     if (start.getTime() === parseISO(event.startAt).getTime()) return;
@@ -581,6 +623,7 @@ export default function CalendarApp() {
           remindersOff={remindersOff}
           onClose={() => setModal(null)}
           onSave={saveEvent}
+          onSaveFollowing={saveFollowing}
           onDelete={deleteEvent}
           onEndSeries={endSeriesBefore}
           show={show}
@@ -598,7 +641,16 @@ export default function CalendarApp() {
       {groupSettings && currentGroup && (
         <GroupSettings group={currentGroup} me={me} close={() => setGroupSettings(false)} show={show} reload={load} />
       )}
-      {toast && <Toast message={toast} notice={toastNotice} action={toastAction} hold={holdToast} close={hideToast} />}
+      {toast && (
+        <Toast
+          message={toast}
+          notice={toastNotice}
+          alert={toastAlert}
+          action={toastAction}
+          hold={holdToast}
+          close={hideToast}
+        />
+      )}
     </div>
   );
 }
