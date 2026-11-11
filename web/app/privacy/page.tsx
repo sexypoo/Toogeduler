@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Toogeduler가 수집하는 개인정보 항목과 이용·보관·삭제 방침입니다.",
 };
 
-const UPDATED = "2026년 9월 8일";
+const UPDATED = "2026년 11월 10일";
 const CONTACT = "support@toogeduler.com";
 
 export default function Privacy() {
@@ -43,7 +43,7 @@ export default function Privacy() {
             <td>
               Google: 이메일, 이름, 프로필 이미지
               <br />
-              Kakao: 고유 회원번호, 닉네임, 프로필 이미지(이메일 제공에 동의한 경우 이메일)
+              Kakao: 고유 회원번호, 닉네임, 프로필 이미지(카카오가 제공하는 경우). 이메일은 요청하지 않습니다
             </td>
             <td>소셜 로그인 시</td>
           </tr>
@@ -51,6 +51,11 @@ export default function Privacy() {
             <td>프로필</td>
             <td>프로필 이미지 주소(이용자가 직접 입력)</td>
             <td>프로필 수정 시</td>
+          </tr>
+          <tr>
+            <td>웹 푸시 알림</td>
+            <td>브라우저의 푸시 구독 주소와 암호화 키(브라우저가 만든 값으로, 기기 이름이나 위치는 포함하지 않음)</td>
+            <td>&ldquo;이 기기에서 알림 받기&rdquo;를 켤 때</td>
           </tr>
           <tr>
             <td>이용자 생성 콘텐츠</td>
@@ -72,7 +77,7 @@ export default function Privacy() {
         <li>회원 식별 및 로그인 유지</li>
         <li>일정 저장과 이용자가 설정한 공개 범위에 따른 공유</li>
         <li>그룹 구성원 간 겹치지 않는 시간(빈 시간) 계산</li>
-        <li>친구 요청·수락, 그룹 초대, 일정 리마인더 알림 제공</li>
+        <li>친구 요청·수락, 그룹 초대, 일정 리마인더 알림 제공(알림 받기를 켠 기기로의 웹 푸시 포함)</li>
         <li>서비스 오류 대응 및 보안 사고 방지</li>
       </ul>
 
@@ -97,7 +102,11 @@ export default function Privacy() {
       <h2>4. 보유 기간 및 삭제</h2>
       <ul>
         <li>개인정보는 회원 탈퇴 시까지 보유하며, 탈퇴 요청과 동시에 지체 없이 삭제합니다.</li>
-        <li>삭제 대상: 계정 정보, 프로필, 본인이 생성한 모든 일정, 친구 관계, 알림 내역.</li>
+        <li>삭제 대상: 계정 정보, 프로필, 본인이 생성한 모든 일정, 친구 관계, 알림 내역, 웹 푸시 구독 정보.</li>
+        <li>
+          웹 푸시 구독 정보는 탈퇴 전이라도 그 기기에서 알림을 끄거나 로그아웃할 때, 또는 브라우저가 구독을 해지해 푸시
+          서비스가 만료를 알려올 때 즉시 삭제합니다.
+        </li>
         <li>
           본인이 만든 그룹은 다른 구성원의 데이터 보호를 위해 가장 먼저 참여한 구성원에게 승계되며, 남은 구성원이 없으면
           그룹도 함께 삭제됩니다.
@@ -137,6 +146,13 @@ export default function Privacy() {
           <tr>
             <td>Kakao Corp.</td>
             <td>Kakao 계정 로그인 인증</td>
+          </tr>
+          <tr>
+            <td>Google LLC, Mozilla Corporation, Apple Inc., Microsoft Corporation</td>
+            <td>
+              이용자 브라우저의 웹 푸시 알림 전달(이용자가 쓰는 브라우저의 푸시 서비스 한 곳). 알림 내용은 암호화되어
+              전달되므로 푸시 서비스는 내용을 볼 수 없습니다.
+            </td>
           </tr>
         </tbody>
       </table>
