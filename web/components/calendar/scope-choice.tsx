@@ -23,7 +23,9 @@ export function ScopeChoice({
   // 열리면 Enter 오작동을 막도록 덜 위험한 "취소"에 포커스를 둡니다.
   useEffect(() => cancelRef.current?.focus(), []);
   // 모바일 키보드가 올라와 있어도 선택 줄이 가려지지 않게 화면 안으로 올립니다.
-  useEffect(() => groupRef.current?.scrollIntoView({ block: "nearest" }), []);
+  useEffect(() => {
+    groupRef.current?.scrollIntoView({ block: "nearest" });
+  }, []);
   const busy = pending !== null;
   const edit = mode === "edit";
   const following = edit ? "이 일정부터 이후 수정" : "이 일정부터 이후 모두 삭제";
