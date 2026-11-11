@@ -858,7 +858,7 @@ textarea:focus-visible {
   display: flex;
   gap: 8px;
 }
-/* 반복 일정 삭제 범위 선택 줄: footer 자리를 대신하므로 구분선·간격은 footer 와 같게 둔다. */
+/* 반복 일정 수정·삭제 범위 선택 줄: footer 자리를 대신하므로 구분선·간격은 footer 와 같게 둔다. */
 .scope-choice {
   display: grid;
   gap: 8px;
@@ -878,7 +878,7 @@ textarea:focus-visible {
 .scope-choice .ghost {
   justify-self: end;
 }
-/* 두 선택지 모두 파괴적이라 어느 쪽도 채우거나 강조하지 않는다. */
+/* 선택 줄 안에서는 어느 쪽도 채우거나 강조하지 않는다. */
 .scope-option {
   display: grid;
   gap: 2px;
@@ -897,7 +897,8 @@ textarea:focus-visible {
 .scope-option strong {
   font-size: 14px;
 }
-.scope-option.all strong {
+/* 삭제 모드의 "모든 회차"만 위험색. 수정(.edit)은 파괴적이지 않아 두 선택지 모두 --ink. */
+.scope-choice:not(.edit) .scope-option.all strong {
   color: var(--danger);
 }
 /* --muted 는 흰 바탕 작은 글자에서 4.5:1 에 못 미쳐 --ink-2 를 쓴다. */
@@ -905,7 +906,8 @@ textarea:focus-visible {
   font-size: 12px;
   color: var(--ink-2);
 }
-.scope-option:disabled {
+.scope-option:disabled,
+.scope-choice .ghost:disabled {
   opacity: 0.6;
   cursor: default;
 }
