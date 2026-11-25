@@ -138,6 +138,14 @@ API는 매주 월요일 09:00(Asia/Seoul)에 지난 7일간의 사용량을 한 
 
 `V1__baseline.sql`은 2026-10-25 운영 구조를 그대로 옮긴 것입니다. 운영 DB는 이미 그 상태여서 `baseline-on-migrate`로 "V1 적용됨" 표시만 했고, V1은 빈 DB에서만 실행됩니다.
 
+## 10. 운영 스모크 확인
+
+`.github/workflows/prod-smoke.yml`이 30분마다, main push 뒤(4분 대기 후 최대 10분 재시도), 수동 실행(**Actions → Prod smoke → Run workflow**) 때 `scripts/prod-smoke.sh`를 돌립니다. API health, 웹 첫 화면, `/api/auth/login` CORS 사전 요청(웹 주소와 `EXTRA_ORIGINS`의 출처마다), 없는 계정으로 로그인 POST(401이 정상, `403 Invalid CORS request`면 #105 같은 장애)를 확인하고, 실패하면 깨진 항목을 한 줄로 남기며 GitHub 워크플로 실패 메일이 옵니다.
+
+- `WEB_URL`·`CORS_EXTRA_ORIGINS`나 도메인을 바꾸면 워크플로의 `env`도 같이 고칩니다.
+- 로컬에서는 `bash scripts/prod-smoke.sh http://localhost:8080 http://localhost:3000`, 검사가 허용되지 않은 출처를 잡는지는 `--self-test`로 확인합니다.
+- 비밀값은 쓰지 않고, 로그인 시도는 매번 다른 `smoke-…@example.invalid` 주소라 로그인 시도 제한에 걸리지 않습니다. 저장소에 60일간 활동이 없으면 GitHub가 예약 실행을 멈추니 Actions 화면에서 다시 켭니다.
+
 ## 공개 운영 전에 남은 필수 작업
 
 현재 구성으로 소규모 베타 배포는 가능하지만, 공개 운영 전에는 `docs/ROADMAP.md`의 아래 항목을 우선 처리합니다.
