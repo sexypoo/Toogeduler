@@ -104,8 +104,12 @@ public class SecurityConfig {
         chain.doFilter(req, res);
     }
 
+    /**
+     * 웹 주소(WEB_URL)에서 API 를 직접 부르는 요청만 허용한다. Spring Security 의 {@code .cors()} 는 이 이름의 빈을 찾으므로 메서드
+     * 이름을 바꾸면 안 된다(다르면 사전 요청이 전부 403).
+     */
     @Bean
-    CorsConfigurationSource cors(@Value("${app.web-url}") String webUrl) {
+    CorsConfigurationSource corsConfigurationSource(@Value("${app.web-url}") String webUrl) {
         CorsConfiguration c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(webUrl));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
