@@ -1,5 +1,6 @@
 package app.toogeduler.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -10,13 +11,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/** WEB_URL 출처의 CORS 사전 요청은 통과하고, 그 밖의 출처는 거절된다. */
+/** WEB_URL 과 CORS_EXTRA_ORIGINS 출처의 CORS 사전 요청은 통과하고, 그 밖의 출처는 거절된다. */
 @SpringBootTest(
         properties = {
             "spring.datasource.url=jdbc:h2:mem:corspreflight;DB_CLOSE_DELAY=-1",
             "spring.jpa.hibernate.ddl-auto=create-drop",
             "app.seed-demo=false",
-            "app.web-url=http://localhost:3000"
+            "app.web-url=http://localhost:3000",
+            "app.cors-extra-origins= https://app.example , https://shell.example/ "
         })
 @AutoConfigureMockMvc
 class CorsPreflightTest {
@@ -46,6 +48,26 @@ class CorsPreflightTest {
     }
 
     @Test
+    void preflightFromExtraOriginsIsAllowed() throws Exception {
+        // 앱(Capacitor)이 불러오는 웹 주소처럼 WEB_URL 이 아닌 출처. 공백과 끝 슬래시는 무시한다.
+        for (String origin : new String[] {"https://app.example", "https://shell.example"}) {
+            mvc.perform(preflight(origin, "POST", "content-type,x-auth-mode"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        }
+    }
+
+    @Test
+    void allowedOriginsAreTrimmedAndDeduplicated() {
+        assertThat(
+                        SecurityConfig.allowedOrigins(
+                                "https://a.example/", " https://a.example ,, https://b.example"))
+                .containsExactly("https://a.example", "https://b.example");
+        assertThat(SecurityConfig.allowedOrigins("https://a.example", ""))
+                .containsExactly("https://a.example");
+    }
+
+    @Test
     void preflightFromOtherOriginIsRejected() throws Exception {
         mvc.perform(preflight("https://evil.example", "POST", "content-type"))
                 .andExpect(status().isForbidden())
@@ -59,7 +81,8 @@ class CorsPreflightTest {
                 new String[] {
                     "http://localhost:3000.evil.example",
                     "https://localhost:3000",
-                    "http://localhost:3001"
+                    "http://localhost:3001",
+                    "https://app.example.evil.example"
                 }) {
             mvc.perform(preflight(origin, "GET", "authorization"))
                     .andExpect(status().isForbidden())
