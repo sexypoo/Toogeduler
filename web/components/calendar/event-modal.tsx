@@ -1,11 +1,11 @@
 "use client";
-import { DeleteScopeChoice } from "./delete-scope-choice";
 import { RecurrenceUntilField, buildRule, ruleFrequency, ruleUntil } from "./recurrence-until";
+import { ScopeChoice } from "./scope-choice";
 import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
 import { shouldOfferCancelAnnounce } from "@/lib/event-cancel-announce";
 import { shouldOfferMoveAnnounce } from "@/lib/event-move-announce";
-import { type DeleteChoice, deleteChoices } from "@/lib/recurrence-cut";
+import { type ScopeChoice as Choice, deleteChoices, editChoices } from "@/lib/recurrence-cut";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { format, parseISO } from "date-fns";
@@ -19,6 +19,7 @@ export function EventModal({
   remindersOff,
   onClose,
   onSave,
+  onSaveFollowing,
   onDelete,
   onEndSeries,
   show,
@@ -28,22 +29,30 @@ export function EventModal({
   me: User;
   remindersOff: boolean;
   onClose: () => void;
-  onSave: (e: Partial<CalendarEvent>) => void;
+  onSave: (e: Partial<CalendarEvent>) => Promise<void>;
+  onSaveFollowing: (original: Partial<CalendarEvent>, edited: Partial<CalendarEvent>) => Promise<void>;
   onDelete: (id: number, announce: boolean, scopeChosen?: boolean) => Promise<void>;
   onEndSeries: (occurrence: Partial<CalendarEvent>) => Promise<void>;
   show: (m: string) => void;
 }) {
-  // 삭제 범위 선택 줄이 열려 있으면 Escape 는 그 줄만 닫고 모달은 남겨 둡니다.
-  const [choosingScope, setChoosingScope] = useState(false);
-  const [pendingScope, setPendingScope] = useState<DeleteChoice | null>(null);
+  // 수정·삭제 범위 선택 줄은 한 번에 하나만 열립니다. 열려 있으면 Escape 는 그 줄만 닫고 모달은 남겨 둡니다.
+  // 요청이 진행 중이면 모달 닫기·Escape 를 모두 막습니다.
+  const [scopeMode, setScopeMode] = useState<"edit" | "delete" | null>(null);
+  const [pendingScope, setPendingScope] = useState<Choice | null>(null);
+  const close = () => {
+    if (!pendingScope) onClose();
+  };
   const dialog = useDialog<HTMLFormElement>(() => {
-    if (!choosingScope) onClose();
-    else if (!pendingScope) setChoosingScope(false);
+    if (!scopeMode) close();
+    else if (!pendingScope) setScopeMode(null);
   });
-  const [v, setV] = useState({
+  const [initial] = useState({
     ...value,
     visibilities: value.visibilities?.length ? value.visibilities : [value.visibility || "PRIVATE"],
   });
+  const [v, setV] = useState(initial);
+  // 알림 체크는 시간 변경에 따라 저절로 바뀌므로 "고친 값"에서 뺍니다.
+  const changed = JSON.stringify({ ...v, announce: undefined }) !== JSON.stringify({ ...initial, announce: undefined });
   const readOnly = Boolean(v.id && v.owner && v.owner.id !== me.id);
   const selected = v.visibilities || ["PRIVATE"];
   const untilRef = useRef<HTMLInputElement>(null);
@@ -67,7 +76,7 @@ export function EventModal({
   async function remove(id: number) {
     // 반복 일정의 첫 회차가 아니면 바로 지우지 않고 footer 자리에 삭제 범위 선택 줄을 엽니다.
     if (deleteChoices(value).length > 1) {
-      setChoosingScope(true);
+      setScopeMode("delete");
       return;
     }
     setDeleting(true);
@@ -77,25 +86,31 @@ export function EventModal({
       setDeleting(false);
     }
   }
-  // 범위를 고르면 모달을 연 시점의 값(편집 중인 초안이 아님)으로 요청합니다. 실패하면 선택 줄을 그대로 두어 다시 고를 수 있습니다.
-  async function removeScope(choice: DeleteChoice) {
+  // 삭제 범위는 모달을 연 시점의 값(편집 중인 초안이 아님)으로 요청하고, 실패하면 선택 줄을 그대로 두어 다시 고를 수 있습니다.
+  // 수정 범위는 고친 값으로 요청하고, 실패하면 선택 줄을 닫아 입력이 남은 편집 폼으로 돌아갑니다.
+  async function chooseScope(choice: Choice) {
+    const mode = scopeMode;
     setPendingScope(choice);
-    setDeleting(true);
+    if (mode === "delete") setDeleting(true);
     try {
-      if (choice === "following") await onEndSeries(value);
+      if (mode === "edit") await (choice === "following" ? onSaveFollowing(value, v) : onSave(v));
+      else if (choice === "following") await onEndSeries(value);
       else await onDelete(value.id!, offerCancel && announceCancel, true);
     } finally {
       setPendingScope(null);
       setDeleting(false);
+      if (mode === "edit") setScopeMode(null);
     }
   }
-  // 선택 줄을 닫으면 포커스를 "삭제" 버튼으로 돌려줍니다.
+  // 선택 줄을 닫으면 포커스를 그 줄을 연 버튼("저장" 또는 "삭제")으로 돌려줍니다.
   const deleteButton = useRef<HTMLButtonElement>(null);
-  const scopeWasOpen = useRef(false);
+  const saveButton = useRef<HTMLButtonElement>(null);
+  const openedScope = useRef<"edit" | "delete" | null>(null);
   useEffect(() => {
-    if (scopeWasOpen.current && !choosingScope) deleteButton.current?.focus();
-    scopeWasOpen.current = choosingScope;
-  }, [choosingScope]);
+    if (openedScope.current && !scopeMode)
+      (openedScope.current === "edit" ? saveButton : deleteButton).current?.focus();
+    openedScope.current = scopeMode;
+  }, [scopeMode]);
   function set<K extends keyof CalendarEvent>(key: K, val: CalendarEvent[K]) {
     setV((x) => ({ ...x, [key]: val }));
   }
@@ -128,7 +143,7 @@ export function EventModal({
     set("visibilities", next.length ? next : ["PRIVATE"]);
   }
   return (
-    <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && close()}>
       <form
         ref={dialog.ref}
         role="dialog"
@@ -139,7 +154,10 @@ export function EventModal({
         onSubmit={(e) => {
           e.preventDefault();
           if (untilInvalid) untilRef.current?.focus();
-          else if (!readOnly) onSave(v);
+          else if (readOnly || scopeMode) return;
+          // 반복 일정의 첫 회차가 아닌 회차를 실제로 고쳤으면 바로 저장하지 않고 수정 범위 선택 줄을 엽니다.
+          else if (v.id && changed && editChoices(value).length > 1) setScopeMode("edit");
+          else onSave(v);
         }}
       >
         <header>
@@ -147,7 +165,7 @@ export function EventModal({
             <span className="modal-color" style={{ background: v.color }} />
             <h2 id={dialog.titleId}>{readOnly ? "일정 보기" : v.id ? "일정 수정" : "새 일정"}</h2>
           </div>
-          <button type="button" className="icon-btn" aria-label="닫기" onClick={onClose}>
+          <button type="button" className="icon-btn" aria-label="닫기" disabled={pendingScope !== null} onClick={close}>
             <X />
           </button>
         </header>
@@ -388,12 +406,13 @@ export function EventModal({
             </span>
           </>
         )}
-        {choosingScope ? (
-          <DeleteScopeChoice
+        {scopeMode ? (
+          <ScopeChoice
+            mode={scopeMode}
             instanceStart={value.instanceStart!}
             pending={pendingScope}
-            onChoose={removeScope}
-            onCancel={() => setChoosingScope(false)}
+            onChoose={chooseScope}
+            onCancel={() => setScopeMode(null)}
           />
         ) : (
           <footer>
@@ -415,7 +434,11 @@ export function EventModal({
               <button type="button" className="ghost" onClick={onClose}>
                 {readOnly ? "닫기" : "취소"}
               </button>
-              {!readOnly && <button className="primary">저장</button>}
+              {!readOnly && (
+                <button ref={saveButton} className="primary">
+                  저장
+                </button>
+              )}
             </div>
           </footer>
         )}

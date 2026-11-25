@@ -47,7 +47,9 @@ SEED_DEMO=false
 
 `PORT`는 직접 만들지 않습니다. Railway가 제공한 `PORT`를 Spring Boot가 자동으로 사용합니다.
 
-`AUTH_COOKIE_SECURE`도 운영에는 넣지 않습니다. 넣지 않으면 기본값 `true`가 적용되어 로그인 쿠키(SEC-011)에 `Secure`와 `__Host-` 접두사가 붙습니다. `false`는 `http://localhost` 개발 전용입니다. `api/.env.example`을 `.env`로 복사하면 `false`로 설정되며, 직접 실행할 때는 `AUTH_COOKIE_SECURE=false ./mvnw spring-boot:run`처럼 지정해도 됩니다. 운영에서 `false`가 되면 형제 서브도메인이 쿠키를 덮어쓸 수 있어 CSRF 방어가 약해집니다.
+브라우저에서 API를 부를 수 있는 출처(CORS)는 `WEB_URL`과 `CORS_EXTRA_ORIGINS`(쉼표 구분, 정확히 일치)입니다. 넣지 않으면 기본값 `https://toogeduler.vercel.app,https://app.toogeduler.com`이 적용됩니다. 앞의 것은 지금 앱(Capacitor)이 불러오는 웹 주소입니다. 앱이나 웹을 새 주소로 옮기면 그 주소를 여기에 더해야 하고, 빠지면 그 주소에서의 로그인·저장이 `403 Invalid CORS request`로 막힙니다.
+
+`AUTH_COOKIE_SECURE`도 운영에는 넣지 않습니다. 넣지 않으면 기본값 `true`가 적용되어 로그인 쿠키(SEC-011)에 `Secure`와 `__Host-` 접두사가 붙습니다. `false`는 `http://localhost` 개발 전용입니다. `api/.env.example`을 `.env`로 복사하면 `false`로 설정되며, 직접 실행할 때는 `AUTH_COOKIE_SECURE=false ./mvnw spring-boot:run`처럼 지정해도 됩니다. 운영에서 `false`가 되면 형제 서브도메인이 쿠키를 덮어쓸 수 있어 CSRF 방어가 약해집니다. 그래서 운영 설정(`WEB_URL`이나 DB가 localhost/H2가 아님)에서 `AUTH_COOKIE_SECURE=false`이면 API가 시작되지 않습니다(`ConfigGuard`).
 
 5. 배포를 실행합니다. Dockerfile이 Java 21로 API를 빌드하고 `/actuator/health`를 상태 확인에 사용합니다.
 6. `Settings → Networking → Public Networking`에서 우선 Railway 도메인을 생성해 API가 실행되는지 확인합니다.

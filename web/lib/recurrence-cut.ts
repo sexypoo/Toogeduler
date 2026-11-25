@@ -1,8 +1,16 @@
-// 반복 일정을 "이 회차부터 그만"할 때 쓰는 순수 로직. 화면 없이 테스트할 수 있게 컴포넌트와 나눠 둡니다.
+// 반복 일정을 "이 회차부터 그만"하거나 "이 회차부터 바꿀" 때 쓰는 순수 로직. 화면 없이 테스트할 수 있게 컴포넌트와 나눠 둡니다.
 // 엔티티를 바꾸지 않고, 시리즈 규칙의 UNTIL 을 이 회차 시작 1초 전으로 당겨 이후 회차를 없앱니다.
 
 type Occurrence = { recurrenceRule?: string; instanceStart?: string; seriesStartAt?: string };
-export type DeleteChoice = "following" | "all";
+type SeriesFields = Occurrence & {
+  id?: number;
+  startAt?: string;
+  endAt?: string;
+  seriesEndAt?: string;
+  announce?: boolean;
+};
+export type ScopeChoice = "following" | "all";
+export type DeleteChoice = ScopeChoice;
 
 /**
  * 규칙의 FREQ 등은 그대로 두고 UNTIL 만 instanceStart 1초 전(UTC, yyyyMMddTHHmmssZ)으로 바꾸거나 붙입니다.
@@ -20,10 +28,30 @@ export function ruleEndingBefore(rule: string, instanceStart: string) {
   return parts.join(";");
 }
 
-/** 반복 일정의 첫 회차가 아닌 회차에서만 "이 일정부터 이후 모두 삭제"를 고를 수 있습니다. */
-export function deleteChoices(event: Occurrence): DeleteChoice[] {
+/** 반복 일정의 첫 회차가 아닌 회차에서만 "이 일정부터 이후"(삭제·수정)를 고를 수 있습니다. */
+export function scopeChoices(event: Occurrence): ScopeChoice[] {
   if (!event.recurrenceRule || !event.instanceStart || !event.seriesStartAt) return ["all"];
   return Date.parse(event.instanceStart) > Date.parse(event.seriesStartAt) ? ["following", "all"] : ["all"];
+}
+export const deleteChoices = scopeChoices;
+export const editChoices = scopeChoices;
+
+/**
+ * "이 일정부터 이후 수정": 원래 시리즈(cut)는 시작·끝·내용을 그대로 두고 이 회차 직전에서 끝내고,
+ * 이 회차부터는 사용자가 고친 값으로 새 시리즈(next, id 없음)를 만듭니다.
+ * next 의 규칙은 사용자가 고른 규칙이라, 원래 UNTIL 을 바꾸지 않았다면 그대로 이어집니다.
+ */
+export function splitFollowing<T extends SeriesFields>(original: T, edited: T) {
+  const cut: T & { announce: boolean } = {
+    ...original,
+    startAt: original.seriesStartAt,
+    endAt: original.seriesEndAt,
+    recurrenceRule: ruleEndingBefore(original.recurrenceRule!, original.instanceStart!),
+    announce: false,
+  };
+  const { id: _id, instanceStart: _at, seriesStartAt: _start, seriesEndAt: _end, ...rest } = edited;
+  const next = { ...rest, recurrenceRule: edited.recurrenceRule || "" };
+  return { cut, next };
 }
 
 function untilOf(rule: string) {

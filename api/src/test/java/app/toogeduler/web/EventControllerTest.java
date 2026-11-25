@@ -248,6 +248,42 @@ class EventControllerTest {
     }
 
     @Test
+    void editingFromAnOccurrenceKeepsEarlierOccurrencesAndListsEachOnlyOnce() {
+        // 11월 4일(수) 오전 10시부터 매주. 웹의 "이 일정부터 이후 수정"은 원래 시리즈를 11월 18일 회차 직전에서 끝내고(PUT),
+        // 11월 18일 오후 2시부터 고친 값으로 새 시리즈를 만든다(POST).
+        OffsetDateTime seriesStart = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        OffsetDateTime nextStart = OffsetDateTime.parse("2026-11-18T14:00:00+09:00");
+        event.setStartAt(seriesStart);
+        event.setEndAt(seriesStart.plusHours(1));
+        event.setRecurrenceRule("FREQ=WEEKLY");
+        List<Event> saved = new ArrayList<>();
+        when(events.save(any(Event.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Event e = invocation.getArgument(0);
+                            if (e.getId() == null) e.setId(20L);
+                            if (!saved.contains(e)) saved.add(e);
+                            return e;
+                        });
+        controller.update(
+                auth(owner), 10L, input(seriesStart, "FREQ=WEEKLY;UNTIL=20261118T005959Z"));
+        controller.create(auth(owner), input(nextStart, "FREQ=WEEKLY"));
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2026-11-29T00:00:00+09:00");
+        when(events.ownedCalendar(1L, from, to)).thenReturn(saved);
+        assertEquals(
+                List.of(
+                        OffsetDateTime.parse("2026-11-04T10:00:00+09:00").toInstant(),
+                        OffsetDateTime.parse("2026-11-11T10:00:00+09:00").toInstant(),
+                        nextStart.toInstant(),
+                        nextStart.plusWeeks(1).toInstant()),
+                controller.calendar(auth(owner), from, to).stream()
+                        .map(m -> ((OffsetDateTime) m.get("instanceStart")).toInstant())
+                        .sorted()
+                        .toList());
+    }
+
+    @Test
     void recurrenceRuleFormatIsValidated() {
         var validator = Validation.buildDefaultValidatorFactory().getValidator();
         assertFalse(validator.validate(input("FREQ=YEARLY")).isEmpty());
@@ -282,12 +318,16 @@ class EventControllerTest {
     }
 
     private EventController.EventInput input(String recurrenceRule) {
+        return input(OffsetDateTime.parse("2026-08-04T19:00:00+09:00"), recurrenceRule);
+    }
+
+    private EventController.EventInput input(OffsetDateTime start, String recurrenceRule) {
         return new EventController.EventInput(
                 "스터디",
                 "",
                 "",
-                OffsetDateTime.parse("2026-08-04T19:00:00+09:00"),
-                OffsetDateTime.parse("2026-08-04T20:00:00+09:00"),
+                start,
+                start.plusHours(1),
                 false,
                 Set.of(Event.Visibility.PRIVATE),
                 null,

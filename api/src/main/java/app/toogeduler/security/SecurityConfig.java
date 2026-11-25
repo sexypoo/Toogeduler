@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
@@ -104,15 +105,30 @@ public class SecurityConfig {
         chain.doFilter(req, res);
     }
 
+    /**
+     * 웹 주소(WEB_URL)와 추가로 허용한 출처(CORS_EXTRA_ORIGINS, 쉼표 구분)에서 오는 요청만 허용한다. 앱(Capacitor)은 원격 웹 주소를
+     * 불러오므로 그 주소가 출처가 된다. 출처는 정확히 일치해야 하고 와일드카드는 쓰지 않는다. Spring Security 의 {@code .cors()} 는 이 이름의
+     * 빈을 찾으므로 메서드 이름을 바꾸면 안 된다(다르면 사전 요청이 전부 403).
+     */
     @Bean
-    CorsConfigurationSource cors(@Value("${app.web-url}") String webUrl) {
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.web-url}") String webUrl,
+            @Value("${app.cors-extra-origins:}") String extraOrigins) {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of(webUrl));
+        c.setAllowedOrigins(allowedOrigins(webUrl, extraOrigins));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
         s.registerCorsConfiguration("/**", c);
         return s;
+    }
+
+    static List<String> allowedOrigins(String webUrl, String extraOrigins) {
+        return Stream.concat(Stream.of(webUrl), Arrays.stream(extraOrigins.split(",")))
+                .map(o -> o.trim().replaceAll("/+$", ""))
+                .filter(o -> !o.isEmpty())
+                .distinct()
+                .toList();
     }
 }
