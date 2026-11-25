@@ -23,6 +23,7 @@ public class ConfigGuard {
     private final String datasourceUrl;
     private final String jwtSecret;
     private final boolean seedDemo;
+    private final boolean authCookieSecure;
     private final String googleClientId;
     private final String kakaoClientId;
     private final VapidKeys vapid;
@@ -32,6 +33,7 @@ public class ConfigGuard {
             @Value("${spring.datasource.url}") String datasourceUrl,
             @Value("${app.jwt-secret}") String jwtSecret,
             @Value("${app.seed-demo}") boolean seedDemo,
+            @Value("${app.auth-cookie.secure:true}") boolean authCookieSecure,
             @Value("${spring.security.oauth2.client.registration.google.client-id}")
                     String googleClientId,
             @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
@@ -41,6 +43,7 @@ public class ConfigGuard {
         this.datasourceUrl = datasourceUrl;
         this.jwtSecret = jwtSecret;
         this.seedDemo = seedDemo;
+        this.authCookieSecure = authCookieSecure;
         this.googleClientId = googleClientId;
         this.kakaoClientId = kakaoClientId;
         this.vapid = vapid;
@@ -95,6 +98,11 @@ public class ConfigGuard {
         if (seedDemo) {
             throw new IllegalStateException(
                     "SEED_DEMO must be false in production so demo accounts are never created on a public database.");
+        }
+        // Secure 가 빠지면 __Host- 접두사도 빠져 쿠키가 HTTP 로 새거나 형제 서브도메인이 덮어쓸 수 있다(SEC-011).
+        if (!authCookieSecure) {
+            throw new IllegalStateException(
+                    "AUTH_COOKIE_SECURE must not be false in production. Remove the variable or set it to true so login cookies keep Secure and the __Host- prefix.");
         }
     }
 
