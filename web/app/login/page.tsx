@@ -12,9 +12,6 @@ const OAUTH_ERRORS: Record<string, string> = {
   state: "로그인 요청이 만료되었어요. 이 화면에서 다시 시도해주세요.",
   expired: "로그인 링크가 만료되었어요. 다시 시도해주세요.",
 };
-// 이 기기에서 로그인한 적이 있다는 증표. 누군가 비밀번호를 일부러 틀려 계정을 잠가도 이 기기에서는 로그인할 수 있습니다.
-// 로그아웃해도 지우지 않습니다(액세스 토큰과 달리 이것만으로는 아무 API 도 호출할 수 없습니다).
-const DEVICE_KEY = "toogeduler_device";
 export default function Login() {
   const demo = process.env.NEXT_PUBLIC_SHOW_DEMO === "true",
     router = useRouter();
@@ -43,16 +40,11 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      const deviceToken = localStorage.getItem(DEVICE_KEY);
-      const result = await api<{ token: string; deviceToken?: string }>(
-        `/api/auth/${register ? "register" : "login"}`,
-        {
-          method: "POST",
-          body: JSON.stringify(register ? { email, password, name } : { email, password, deviceToken }),
-        },
-      );
-      localStorage.setItem("toogeduler_token", result.token);
-      if (result.deviceToken) localStorage.setItem(DEVICE_KEY, result.deviceToken);
+      // 응답이 로그인 쿠키와 기기 토큰 쿠키를 내려줍니다. 기기 토큰은 서버가 쿠키에서 읽으므로 본문에 싣지 않습니다.
+      await api(`/api/auth/${register ? "register" : "login"}`, {
+        method: "POST",
+        body: JSON.stringify(register ? { email, password, name } : { email, password }),
+      });
       const invite = sessionStorage.getItem("pending_invite");
       if (invite) {
         sessionStorage.removeItem("pending_invite");

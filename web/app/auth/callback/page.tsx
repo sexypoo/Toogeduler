@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { takeVerifier } from "@/lib/oauth";
-// 소셜 로그인이 돌려준 일회용 코드를, 로그인을 시작할 때 이 기기에 남겨 둔 verifier 와 함께 토큰으로 바꿉니다.
+// 소셜 로그인이 돌려준 일회용 코드를, 로그인을 시작할 때 이 기기에 남겨 둔 verifier 와 함께 로그인 쿠키로 바꿉니다.
 function CallbackContent() {
   const router = useRouter(),
     params = useSearchParams(),
@@ -22,9 +22,9 @@ function CallbackContent() {
       router.replace("/login?oauthError=state");
       return;
     }
-    api<{ token: string }>("/api/auth/oauth/exchange", { method: "POST", body: JSON.stringify({ code, verifier }) })
-      .then((result) => {
-        localStorage.setItem("toogeduler_token", result.token);
+    // 응답이 로그인 쿠키를 내려줍니다. 본문의 token 은 저장하지 않습니다(SEC-011).
+    api("/api/auth/oauth/exchange", { method: "POST", body: JSON.stringify({ code, verifier }) })
+      .then(() => {
         const invite = sessionStorage.getItem("pending_invite");
         if (invite) {
           sessionStorage.removeItem("pending_invite");

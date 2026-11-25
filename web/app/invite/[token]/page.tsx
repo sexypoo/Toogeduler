@@ -3,7 +3,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { UsersRound } from "lucide-react";
-import { api, ApiError, OAUTH_READY, token } from "@/lib/api";
+import { api, ApiError, OAUTH_READY, signedIn as hasSession } from "@/lib/api";
 import { startOAuth } from "@/lib/oauth";
 import type { Group } from "@/lib/types";
 // 링크만 있으면 누구나 보는 정보라 이름·색·멤버 수·그룹장 이름만 옵니다. 열기만 해서는 가입하지 않고, "참여하기"를 눌러야 POST 합니다.
@@ -21,20 +21,16 @@ export default function Invite() {
     [joinError, setJoinError] = useState("");
   const focusRef = useRef<HTMLElement | null>(null);
   // 이미 멤버인지는 내 그룹 목록의 초대 링크로 판단합니다. 미리보기 응답에 그룹 ID 를 넣지 않기 위해서입니다.
-  // 저장된 토큰이 만료(401)됐으면 비로그인 화면을 보여줍니다.
+  // 로그인 쿠키가 만료(401)됐으면 비로그인 화면을 보여줍니다.
   const load = useCallback(async () => {
     setPhase("loading");
     try {
       const [p, mine] = await Promise.all([
         api<Preview>(`/api/public/invites/${invite}`),
-        token()
-          ? api<Group[]>("/api/groups").catch((e) => {
-              if (e instanceof ApiError && e.status === 401) {
-                localStorage.removeItem("toogeduler_token");
-                return null;
-              }
-              return [] as Group[];
-            })
+        hasSession()
+          ? api<Group[]>("/api/groups").catch((e) =>
+              e instanceof ApiError && e.status === 401 ? null : ([] as Group[]),
+            )
           : Promise.resolve(null),
       ]);
       setPreview(p);
@@ -78,7 +74,6 @@ export default function Invite() {
       setTimeout(() => router.replace(`/?group=${g.id}`), 900);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
-        localStorage.removeItem("toogeduler_token");
         sessionStorage.setItem("pending_invite", invite);
         router.replace("/login?session=expired");
         return;

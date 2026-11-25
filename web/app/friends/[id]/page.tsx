@@ -19,7 +19,7 @@ import {
 } from "date-fns";
 import { ko } from "date-fns/locale";
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock3, MapPin, ShieldCheck, UserRound, X } from "lucide-react";
-import { api, token } from "@/lib/api";
+import { api, signedIn } from "@/lib/api";
 import { blockPosition, overlapsDay, sideBySide, weekHourRange } from "@/lib/time";
 import { useDialog } from "@/lib/use-dialog";
 import type { CalendarEvent, User } from "@/lib/types";
@@ -46,7 +46,7 @@ export default function FriendCalendarPage() {
     return { start, end: addDays(start, view === "week" ? 7 : 42) };
   }, [anchor, view]);
   useEffect(() => {
-    if (!token()) {
+    if (!signedIn()) {
       router.replace("/login");
       return;
     }
@@ -55,7 +55,7 @@ export default function FriendCalendarPage() {
       .catch((e) => setError(e instanceof Error ? e.message : "친구 프로필을 불러오지 못했습니다."));
   }, [friendId, router]);
   useEffect(() => {
-    if (!token()) return;
+    if (!signedIn()) return;
     setLoading(true);
     setError("");
     api<CalendarEvent[]>(
