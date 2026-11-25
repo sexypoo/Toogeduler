@@ -537,7 +537,11 @@ export default function CalendarApp() {
                 >
                   <ChevronRight />
                 </button>
-                <h1>{format(anchor, "yyyy년 M월", { locale: ko })}</h1>
+                <h1>
+                  {/* 휴대폰에서는 연도를 월 위에 작게 올려 툴바 버튼과 겹치지 않게 합니다. */}
+                  <span className="period-year">{format(anchor, "yyyy년", { locale: ko })}</span>{" "}
+                  {format(anchor, "M월", { locale: ko })}
+                </h1>
               </div>
               <div className="toolbar-actions">
                 {active === "groups" && (

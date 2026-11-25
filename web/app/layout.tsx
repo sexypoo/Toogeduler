@@ -18,6 +18,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // iPhone 은 16px 보다 작은 입력칸을 누르면 화면 전체를 확대합니다. 확대 상한을 1로 두면 그 자동 확대만 막히고,
+  // iOS 는 손가락으로 벌리는 확대는 그대로 허용합니다.
+  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#ffffff",
 };
