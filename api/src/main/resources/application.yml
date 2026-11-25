@@ -56,6 +56,8 @@ management:
 app:
   jwt-secret: ${JWT_SECRET:toogeduler-local-secret-key-change-this-in-production-2026}
   web-url: ${WEB_URL:http://localhost:3000}
+  # WEB_URL 말고도 API 를 부를 수 있는 출처(쉼표 구분, 정확히 일치). 기본값은 지금 앱(Capacitor)이 불러오는 주소와 예전 웹 주소다.
+  cors-extra-origins: ${CORS_EXTRA_ORIGINS:https://toogeduler.vercel.app,https://app.toogeduler.com}
   mobile-url: ${MOBILE_URL:toogeduler://auth/callback}
   seed-demo: ${SEED_DEMO:true}
   # 로그인 쿠키(SEC-011)의 Secure·`__Host-`. 프록시 뒤라 request.isSecure() 대신 이 값을 쓴다. http://localhost 에서만 false.
