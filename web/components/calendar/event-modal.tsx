@@ -229,7 +229,7 @@ export function EventModal({
             />
           </div>
         </div>
-        <label className="check-line">
+        <label className="check-line all-day-line">
           <input
             disabled={readOnly}
             type="checkbox"
@@ -239,7 +239,7 @@ export function EventModal({
           <span>종일 일정</span>
         </label>
         <div className="field-label">
-          <span>공개 범위 · 여러 개 선택 가능</span>
+          <span className="field-caption">공개 범위 · 여러 개 선택 가능</span>
           <div className="visibility-options">
             {(Object.keys(visibilityLabel) as Visibility[]).map((item) => (
               <button
@@ -295,8 +295,8 @@ export function EventModal({
           </>
         )}
         <div className="form-grid">
-          <label className="field-label">
-            반복
+          <label className="field-label row-line">
+            <span className="field-caption">반복</span>
             <select
               disabled={readOnly}
               value={frequency}
@@ -318,8 +318,8 @@ export function EventModal({
               onChange={(next) => set("recurrenceRule", buildRule(frequency, next))}
             />
           )}
-          <label className="field-label">
-            알림
+          <label className="field-label row-line">
+            <span className="field-caption">알림</span>
             <select
               disabled={readOnly}
               aria-describedby={remindersOff && !readOnly ? "reminder-off-hint" : undefined}
@@ -339,8 +339,8 @@ export function EventModal({
             </p>
           )}
         </div>
-        <label className="field-label">
-          색상
+        <label className="field-label row-line color-line">
+          <span className="field-caption">색상</span>
           <span className="color-picker">
             {EVENT_COLORS.map((c) => (
               <button
@@ -357,7 +357,7 @@ export function EventModal({
           </span>
         </label>
         <label className="field-label">
-          장소
+          <span className="field-caption">장소</span>
           <input
             readOnly={readOnly}
             maxLength={255}
@@ -367,7 +367,7 @@ export function EventModal({
           />
         </label>
         <label className="field-label">
-          메모
+          <span className="field-caption">메모</span>
           <textarea
             readOnly={readOnly}
             maxLength={255}

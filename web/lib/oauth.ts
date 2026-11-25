@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { OAUTH_ORIGIN } from "@/lib/api";
 
 // 소셜 로그인은 토큰 대신 일회용 코드로 돌아옵니다. 그 코드는 로그인을 시작한 이 기기의
@@ -19,7 +19,31 @@ export async function startOAuth(provider: "kakao" | "google") {
   );
   localStorage.setItem(VERIFIER_KEY, verifier);
   const client = Capacitor.isNativePlatform() ? "mobile" : "web";
-  window.location.assign(`${OAUTH_ORIGIN}/api/auth/oauth/${provider}?client=${client}&challenge=${challenge}`);
+  const url = `${OAUTH_ORIGIN}/api/auth/oauth/${provider}?client=${client}&challenge=${challenge}`;
+  if (Capacitor.getPlatform() === "ios" && Capacitor.isPluginAvailable("NativeAuth")) {
+    await startInSheet(url);
+    return;
+  }
+  window.location.assign(url);
+}
+
+type NativeAuthPlugin = { start(options: { url: string; callbackScheme: string }): Promise<{ url: string }> };
+const NativeAuth = registerPlugin<NativeAuthPlugin>("NativeAuth");
+
+// iOS 앱: WebView 가 API 주소로 이동하면 Capacitor 가 Safari 로 넘겨 버려, 로그인 뒤 앱으로 돌아오지 못하고 웹에 남습니다.
+// 앱 안 로그인 시트에서 로그인하고, 시트가 받아 온 toogeduler://auth/callback?... 을 이 WebView 의 콜백 페이지로 옮깁니다.
+async function startInSheet(url: string) {
+  let callback: URL;
+  try {
+    callback = new URL((await NativeAuth.start({ url, callbackScheme: "toogeduler" })).url);
+  } catch (error) {
+    localStorage.removeItem(VERIFIER_KEY);
+    // 사용자가 시트를 닫았으면 로그인 화면에 그대로 둡니다.
+    if ((error as { code?: string }).code === "CANCELED") return;
+    window.location.assign("/login?oauthError=oauth_failed");
+    return;
+  }
+  window.location.assign(`/auth/callback${callback.search}`);
 }
 
 /** 한 번 꺼내면 지웁니다. 코드와 마찬가지로 verifier 도 한 번만 씁니다. */
