@@ -1,0 +1,42 @@
+name: Prod smoke
+
+# 운영에서 로그인·저장이 막히면(#105 같은 CORS 장애) 30분 안에 알기 위한 확인.
+# 실패하면 GitHub 기본 알림(워크플로 실패 메일)이 간다. 비밀값은 쓰지 않는다.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: prod-smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  API_URL: https://api.toogeduler.com
+  WEB_URL: https://app.toogeduler.com
+  # WEB_URL 외에 운영 API 가 허용해야 하는 출처(공백 구분)
+  EXTRA_ORIGINS: https://toogeduler.com
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for deploy after push
+        if: github.event_name == 'push'
+        # Railway·Vercel 이 새 버전을 올리기 전에 옛 버전을 확인하지 않도록 먼저 기다린다.
+        run: sleep 240
+      - name: Smoke check
+        run: |
+          retry=0
+          if [ "${{ github.event_name }}" = "push" ]; then retry=600; fi
+          # shellcheck disable=SC2086 # EXTRA_ORIGINS 는 공백으로 나눠 인자로 넘긴다
+          bash scripts/prod-smoke.sh --retry-for "$retry" "$API_URL" "$WEB_URL" $EXTRA_ORIGINS
+      - name: Self-test (disallowed origin must fail)
+        run: bash scripts/prod-smoke.sh --self-test "$API_URL" "$WEB_URL"
