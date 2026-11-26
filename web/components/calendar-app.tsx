@@ -15,7 +15,7 @@ import { EVENT_COLORS } from "@/lib/colors";
 import { deleteEventUrl } from "@/lib/event-cancel-announce";
 import { confirmedShareData, groupLabel } from "@/lib/event-share";
 import { shareOrCopy } from "@/lib/invite-share";
-import { ruleEndingBefore, splitFollowing } from "@/lib/recurrence-cut";
+import { ruleEndingBefore, ruleExcluding, splitFollowing } from "@/lib/recurrence-cut";
 import { askReminderPermissionOnce, onAppForeground, remindersBlocked, syncReminders } from "@/lib/native-reminders";
 import { SIGN_OUT_FAILED, signOutDevice } from "@/lib/sign-out";
 import { shiftSeries } from "@/lib/time";
@@ -351,24 +351,27 @@ export default function CalendarApp() {
       show(e instanceof Error ? e.message : "삭제하지 못했습니다.");
     }
   }
-  // "이 일정부터 이후 모두 삭제": 시리즈의 원래 시작·끝과 나머지 필드는 그대로 두고 반복 규칙만 이 회차 직전에서 끝냅니다.
-  async function endSeriesBefore(occurrence: Partial<CalendarEvent>) {
+  // "이 일정부터 이후 모두 삭제"(UNTIL 을 이 회차 직전으로)·"이 일정만 삭제"(EXDATE 에 이 회차를 더함):
+  // 시리즈의 원래 시작·끝과 나머지 필드는 그대로 두고 반복 규칙만 바꿉니다. 그룹 멤버에게 따로 알리지 않습니다.
+  async function endSeriesBefore(occurrence: Partial<CalendarEvent>, only = false) {
+    const cut = only ? ruleExcluding : ruleEndingBefore;
     const body = {
       ...occurrence,
       startAt: occurrence.seriesStartAt,
       endAt: occurrence.seriesEndAt,
-      recurrenceRule: ruleEndingBefore(occurrence.recurrenceRule!, occurrence.instanceStart!),
+      recurrenceRule: cut(occurrence.recurrenceRule!, occurrence.instanceStart!),
       groupIds: occurrence.groupIds || [],
       announce: false,
     };
     try {
       await api(`/api/events/${occurrence.id}`, { method: "PUT", body: JSON.stringify(body) });
       setModal(null);
-      show("이 일정부터 반복을 끝냈어요.");
+      show(only ? "이 회차만 삭제했어요." : "이 일정부터 반복을 끝냈어요.");
       loadEvents();
       afterReminderChange();
     } catch (e) {
-      show(e instanceof Error ? e.message : "반복을 끝내지 못했어요. 잠시 후 다시 시도해 주세요.");
+      const fallback = only ? "이 회차만 삭제하지 못했어요. 다시" : "반복을 끝내지 못했어요. 잠시 후 다시";
+      show(e instanceof Error ? e.message : `${fallback} 시도해 주세요.`);
     }
   }
   // "이 일정부터 이후 수정": 원래 시리즈를 이 회차 직전에서 끝낸(PUT) 뒤, 이 회차부터 고친 값으로 새 시리즈를 만듭니다(POST).

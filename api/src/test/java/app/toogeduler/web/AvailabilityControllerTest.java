@@ -230,6 +230,40 @@ class AvailabilityControllerTest {
     }
 
     @Test
+    void weeklyEventDoesNotBlockTheWeekLeftOutWithExdate() {
+        GroupRepository groups = mock(GroupRepository.class);
+        GroupMemberRepository members = mock(GroupMemberRepository.class);
+        EventRepository events = mock(EventRepository.class);
+        AvailabilityController controller = new AvailabilityController(groups, members, events);
+        controller.clock = Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"), ZoneOffset.UTC);
+        User me = user(1L, "나"), sora = user(2L, "소라");
+        Group group = new Group();
+        group.setId(5L);
+        when(groups.findById(5L)).thenReturn(Optional.of(group));
+        when(members.existsByGroupIdAndUserId(5L, 1L)).thenReturn(true);
+        when(members.findByGroupId(5L)).thenReturn(List.of(member(group, me), member(group, sora)));
+        // 소라는 매주 수요일 19–21시(한국 시간) 동아리인데, 10월 14일 회차만 "이 일정만 삭제"로 뺐다.
+        Event club = busy(sora, "2026-10-07T10:00:00Z", "2026-10-07T12:00:00Z");
+        club.setRecurrenceRule("FREQ=WEEKLY;EXDATE=20261014T100000Z");
+        when(events.busyEvents(anyCollection(), any(), any())).thenReturn(List.of(club));
+
+        List<AvailabilityController.Slot> skipped =
+                controller.blocks(
+                        new UsernamePasswordAuthenticationToken(me, null, List.of()),
+                        5L,
+                        LocalDate.of(2026, 10, 14),
+                        LocalDate.of(2026, 10, 14),
+                        LocalTime.of(18, 0),
+                        LocalTime.of(22, 0),
+                        60,
+                        "Asia/Seoul",
+                        null);
+        assertEquals(1, skipped.size());
+        assertBlock(
+                skipped.getFirst(), "2026-10-14T18:00:00+09:00", "2026-10-14T22:00:00+09:00", true);
+    }
+
+    @Test
     void requiredMembersMustAllBeFreeInEveryBlock() {
         GroupRepository groups = mock(GroupRepository.class);
         GroupMemberRepository members = mock(GroupMemberRepository.class);

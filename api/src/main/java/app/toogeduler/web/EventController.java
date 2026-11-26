@@ -32,7 +32,8 @@ public class EventController {
             Set<Event.Visibility> visibilities,
             Event.Visibility visibility,
             @Pattern(
-                            regexp = "|FREQ=(DAILY|WEEKLY|MONTHLY)(;UNTIL=[0-9]{8}(T[0-9]{6}Z)?)?",
+                            regexp =
+                                    "|FREQ=(DAILY|WEEKLY|MONTHLY)(;UNTIL=[0-9]{8}(T[0-9]{6}Z)?)?(;EXDATE=[0-9]{8}T[0-9]{6}Z(,[0-9]{8}T[0-9]{6}Z)*)?",
                             message = "반복 설정이 올바르지 않습니다.")
                     String recurrenceRule,
             @Min(0) @Max(10080) Integer reminderMinutes,
@@ -198,6 +199,14 @@ public class EventController {
             if (until.isBefore(b.startAt()))
                 throw new ApiException(HttpStatus.BAD_REQUEST, "끝나는 날은 시작일 이후여야 해요.");
         }
+        if (b.recurrenceRule() != null && b.recurrenceRule().contains("EXDATE=")) {
+            if (excludedStarts(b.recurrenceRule()) == null)
+                throw new ApiException(HttpStatus.BAD_REQUEST, "반복에서 뺀 날짜가 올바르지 않습니다.");
+            if (b.recurrenceRule().split(",").length > MAX_EXDATES)
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "이 일정에서 뺄 수 있는 회차가 너무 많아요. 모든 회차를 삭제하거나 새 일정으로 만들어 주세요.");
+        }
     }
 
     private void apply(Event e, EventInput b, User u) {
@@ -299,13 +308,16 @@ public class EventController {
         }
         // UNTIL(UTC 시각)보다 늦게 시작하는 회차는 만들지 않는다. UNTIL 시각에 딱 맞게 시작하는 회차는 포함(RFC 5545).
         OffsetDateTime until = untilInstant(rule);
+        // EXDATE(회차 시작 시각, UTC)에 든 회차는 "이 일정만 삭제"로 뺀 것이라 건너뛴다.
+        Set<Instant> excluded = Objects.requireNonNullElse(excludedStarts(rule), Set.of());
         int guard = 0;
         while (!end.isAfter(from) && guard++ < 5000) {
             start = next(start, rule);
             end = next(end, rule);
         }
         while (start.isBefore(to) && (until == null || !start.isAfter(until)) && guard++ < 5500) {
-            if (end.isAfter(from)) out.add(new EventRange(e.getOwner().getId(), start, end));
+            if (end.isAfter(from) && !excluded.contains(start.toInstant()))
+                out.add(new EventRange(e.getOwner().getId(), start, end));
             start = next(start, rule);
             end = next(end, rule);
         }
@@ -346,6 +358,26 @@ public class EventController {
             }
         }
         return null;
+    }
+
+    static final int MAX_EXDATES = 100;
+
+    // "FREQ=WEEKLY;EXDATE=20261111T010000Z,20261118T010000Z"에서 뺀 회차 시작 시각들. 없으면 빈 집합, 없는 날짜가 있으면
+    // null.
+    static Set<Instant> excludedStarts(String rule) {
+        Set<Instant> out = new HashSet<>();
+        if (rule == null) return out;
+        for (String part : rule.split(";")) {
+            if (!part.startsWith("EXDATE=")) continue;
+            for (String value : part.substring(7).split(",")) {
+                try {
+                    out.add(Instant.from(UNTIL_UTC.parse(value)));
+                } catch (DateTimeException ex) {
+                    return null;
+                }
+            }
+        }
+        return out;
     }
 
     private static OffsetDateTime next(OffsetDateTime value, String rule) {

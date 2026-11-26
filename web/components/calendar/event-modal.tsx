@@ -5,7 +5,7 @@ import { visibilityLabel } from "./shared";
 import { COLOR_NAMES, EVENT_COLORS } from "@/lib/colors";
 import { shouldOfferCancelAnnounce } from "@/lib/event-cancel-announce";
 import { shouldOfferMoveAnnounce } from "@/lib/event-move-announce";
-import { type ScopeChoice as Choice, deleteChoices, editChoices } from "@/lib/recurrence-cut";
+import { type ScopeChoice as Choice, deleteChoices, editChoices, isLastOccurrence } from "@/lib/recurrence-cut";
 import type { CalendarEvent, Group, User, Visibility } from "@/lib/types";
 import { useDialog } from "@/lib/use-dialog";
 import { format, parseISO } from "date-fns";
@@ -32,19 +32,23 @@ export function EventModal({
   onSave: (e: Partial<CalendarEvent>) => Promise<void>;
   onSaveFollowing: (original: Partial<CalendarEvent>, edited: Partial<CalendarEvent>) => Promise<void>;
   onDelete: (id: number, announce: boolean, scopeChosen?: boolean) => Promise<void>;
-  onEndSeries: (occurrence: Partial<CalendarEvent>) => Promise<void>;
+  onEndSeries: (occurrence: Partial<CalendarEvent>, only?: boolean) => Promise<void>;
   show: (m: string) => void;
 }) {
   // 수정·삭제 범위 선택 줄은 한 번에 하나만 열립니다. 열려 있으면 Escape 는 그 줄만 닫고 모달은 남겨 둡니다.
   // 요청이 진행 중이면 모달 닫기·Escape 를 모두 막습니다.
   const [scopeMode, setScopeMode] = useState<"edit" | "delete" | null>(null);
   const [pendingScope, setPendingScope] = useState<Choice | null>(null);
+  // "이 일정만 삭제"를 골랐는데 마지막 남은 회차라 일정째 삭제를 묻는 중. Escape 는 선택 줄로 돌아갑니다.
+  const [confirmLast, setConfirmLast] = useState(false);
   const close = () => {
     if (!pendingScope) onClose();
   };
   const dialog = useDialog<HTMLFormElement>(() => {
     if (!scopeMode) close();
-    else if (!pendingScope) setScopeMode(null);
+    else if (pendingScope) return;
+    else if (confirmLast) setConfirmLast(false);
+    else setScopeMode(null);
   });
   const [initial] = useState({
     ...value,
@@ -74,7 +78,7 @@ export function EventModal({
   const [announceCancel, setAnnounceCancel] = useState(true);
   const [deleting, setDeleting] = useState(false);
   async function remove(id: number) {
-    // 반복 일정의 첫 회차가 아니면 바로 지우지 않고 footer 자리에 삭제 범위 선택 줄을 엽니다.
+    // 반복 일정의 회차면 바로 지우지 않고 footer 자리에 삭제 범위 선택 줄을 엽니다.
     if (deleteChoices(value).length > 1) {
       setScopeMode("delete");
       return;
@@ -90,11 +94,15 @@ export function EventModal({
   // 수정 범위는 고친 값으로 요청하고, 실패하면 선택 줄을 닫아 입력이 남은 편집 폼으로 돌아갑니다.
   async function chooseScope(choice: Choice) {
     const mode = scopeMode;
+    if (choice === "this" && isLastOccurrence(value)) {
+      setConfirmLast(true);
+      return;
+    }
     setPendingScope(choice);
     if (mode === "delete") setDeleting(true);
     try {
       if (mode === "edit") await (choice === "following" ? onSaveFollowing(value, v) : onSave(v));
-      else if (choice === "following") await onEndSeries(value);
+      else if (choice !== "all") await onEndSeries(value, choice === "this");
       else await onDelete(value.id!, offerCancel && announceCancel, true);
     } finally {
       setPendingScope(null);
@@ -300,7 +308,7 @@ export function EventModal({
             <select
               disabled={readOnly}
               value={frequency}
-              onChange={(e) => set("recurrenceRule", buildRule(e.target.value, until))}
+              onChange={(e) => set("recurrenceRule", buildRule(e.target.value, until, v.recurrenceRule))}
             >
               <option value="">반복 안 함</option>
               <option value="FREQ=DAILY">매일</option>
@@ -315,7 +323,7 @@ export function EventModal({
               invalid={untilInvalid}
               readOnly={readOnly}
               inputRef={untilRef}
-              onChange={(next) => set("recurrenceRule", buildRule(frequency, next))}
+              onChange={(next) => set("recurrenceRule", buildRule(frequency, next, v.recurrenceRule))}
             />
           )}
           <label className="field-label row-line">
@@ -410,9 +418,12 @@ export function EventModal({
           <ScopeChoice
             mode={scopeMode}
             instanceStart={value.instanceStart!}
+            choices={scopeMode === "edit" ? editChoices(value) : deleteChoices(value)}
             pending={pendingScope}
+            confirmLast={confirmLast}
             onChoose={chooseScope}
             onCancel={() => setScopeMode(null)}
+            onBack={() => setConfirmLast(false)}
           />
         ) : (
           <footer>

@@ -76,6 +76,19 @@ test("끝나는 날(UNTIL) 이후 회차의 알림은 예약하지 않는다", (
   );
 });
 
+test("이 일정만 삭제로 뺀 회차(EXDATE)의 알림은 예약하지 않는다", () => {
+  const skipped = at(14, 19)
+    .toISOString()
+    .replace(/[-:]|\.\d+/g, "");
+  const series = event({ start: at(14, 19), recurrenceRule: `FREQ=WEEKLY;EXDATE=${skipped}`, reminderMinutes: 30 });
+  series.startAt = new Date(2026, 8, 30, 19).toISOString();
+  series.endAt = new Date(2026, 8, 30, 20).toISOString();
+  assert.deepEqual(
+    planReminders([series], ME, now).map((r) => r.at.getTime()),
+    [at(21, 18, 30).getTime()],
+  );
+});
+
 // 서버는 DB(timestamptz)에서 읽은 시각을 Z 오프셋으로 주고, UNTIL 은 작성자 기기의 그날 끝을 UTC 로 바꿔 저장한다.
 function storedDaily(seriesStartUtc: string, until: string) {
   const series = event({ start: new Date(seriesStartUtc), recurrenceRule: `FREQ=DAILY;UNTIL=${until}` });
