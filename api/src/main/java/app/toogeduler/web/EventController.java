@@ -202,7 +202,8 @@ public class EventController {
         if (b.recurrenceRule() != null && b.recurrenceRule().contains("EXDATE=")) {
             if (excludedStarts(b.recurrenceRule()) == null)
                 throw new ApiException(HttpStatus.BAD_REQUEST, "반복에서 뺀 날짜가 올바르지 않습니다.");
-            if (b.recurrenceRule().split(",").length > MAX_EXDATES)
+            // 규칙은 recurrence_rule varchar(255)에 들어가므로 EXDATE 개수는 길이로 막는다(대략 13~14개).
+            if (normalizeRule(b.recurrenceRule(), b.startAt()).length() > 255)
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "이 일정에서 뺄 수 있는 회차가 너무 많아요. 모든 회차를 삭제하거나 새 일정으로 만들어 주세요.");
@@ -360,10 +361,7 @@ public class EventController {
         return null;
     }
 
-    static final int MAX_EXDATES = 100;
-
-    // "FREQ=WEEKLY;EXDATE=20261111T010000Z,20261118T010000Z"에서 뺀 회차 시작 시각들. 없으면 빈 집합, 없는 날짜가 있으면
-    // null.
+    // "FREQ=WEEKLY;EXDATE=20261111T010000Z,…"에서 뺀 회차 시작 시각들. 없으면 빈 집합, 없는 날짜가 있으면 null.
     static Set<Instant> excludedStarts(String rule) {
         Set<Instant> out = new HashSet<>();
         if (rule == null) return out;

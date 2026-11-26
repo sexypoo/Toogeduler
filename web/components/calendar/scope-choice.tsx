@@ -12,6 +12,7 @@ export function ScopeChoice({
   choices,
   pending,
   confirmLast = false,
+  quietGroup = false,
   onChoose,
   onCancel,
   onBack,
@@ -21,6 +22,7 @@ export function ScopeChoice({
   choices: Choice[];
   pending: Choice | null;
   confirmLast?: boolean;
+  quietGroup?: boolean;
   onChoose: (choice: Choice) => void;
   onCancel: () => void;
   onBack?: () => void;
@@ -82,6 +84,7 @@ export function ScopeChoice({
           <strong>{pending === "this" ? "빼는 중…" : "이 일정만 삭제"}</strong>
           <span id="scope-this-hint">
             {format(parseISO(instanceStart), "M월 d일")} 회차만 빠져요. 나머지 회차는 그대로예요.
+            {quietGroup && " 그룹 멤버에게는 알리지 않아요."}
           </span>
         </button>
       )}

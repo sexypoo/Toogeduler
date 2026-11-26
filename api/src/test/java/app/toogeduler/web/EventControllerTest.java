@@ -334,18 +334,16 @@ class EventControllerTest {
         assertTrue(validator.validate(input("FREQ=WEEKLY;EXDATE=20260811T100000Z")).isEmpty());
         assertFalse(validator.validate(input("FREQ=WEEKLY;EXDATE=20260811")).isEmpty());
         assertFalse(validator.validate(input("EXDATE=20260811T100000Z")).isEmpty());
-        // 형식은 맞지만 없는 날짜, 100개 초과는 400.
+        // 형식은 맞지만 없는 날짜, recurrence_rule 컬럼(255자)을 넘는 규칙은 400.
         String many =
-                "FREQ=WEEKLY;EXDATE="
-                        + String.join(
-                                ",",
-                                Collections.nCopies(
-                                        EventController.MAX_EXDATES + 1, "20260811T100000Z"));
+                "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE="
+                        + String.join(",", Collections.nCopies(13, "20260811T100000Z"));
         for (String rule : List.of("FREQ=WEEKLY;EXDATE=20261340T100000Z", many)) {
             ApiException error =
                     assertThrows(
                             ApiException.class, () -> controller.create(auth(owner), input(rule)));
             assertEquals(HttpStatus.BAD_REQUEST, error.status);
+            if (rule.equals(many)) assertTrue(error.getMessage().contains("너무 많아요"));
         }
         verify(events, never()).save(any());
     }

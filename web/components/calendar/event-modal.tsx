@@ -421,6 +421,7 @@ export function EventModal({
             choices={scopeMode === "edit" ? editChoices(value) : deleteChoices(value)}
             pending={pendingScope}
             confirmLast={confirmLast}
+            quietGroup={offerCancel}
             onChoose={chooseScope}
             onCancel={() => setScopeMode(null)}
             onBack={() => setConfirmLast(false)}
