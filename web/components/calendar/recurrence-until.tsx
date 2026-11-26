@@ -12,9 +12,14 @@ export function ruleUntil(rule: string) {
   const until = untilLimit(rule);
   return until ? format(until, "yyyy-MM-dd") : "";
 }
-export function buildRule(frequency: string, until: string) {
-  if (!frequency || !until) return frequency;
-  return `${frequency};UNTIL=${new Date(`${until}T23:59:59`).toISOString().replace(/[-:]|\.\d+/g, "")}`;
+// previous 규칙에 "이 일정만 삭제"로 뺀 회차(EXDATE)가 있으면 반복 종류·끝나는 날을 바꿔도 그대로 이어 붙입니다.
+export function buildRule(frequency: string, until: string, previous = "") {
+  if (!frequency) return frequency;
+  const exdate = previous.split(";").find((part) => part.startsWith("EXDATE="));
+  const parts = [frequency];
+  if (until) parts.push(`UNTIL=${new Date(`${until}T23:59:59`).toISOString().replace(/[-:]|\.\d+/g, "")}`);
+  if (exdate) parts.push(exdate);
+  return parts.join(";");
 }
 
 // 반복을 고른 일정에서만 보이는 "끝나는 날" 입력입니다. 비워 두면 끝없이 반복합니다.

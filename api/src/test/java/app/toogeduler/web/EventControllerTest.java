@@ -284,6 +284,71 @@ class EventControllerTest {
     }
 
     @Test
+    void exdateLeavesOutOnlyThatWeek() {
+        // 11월 4일(수) 오전 10시부터 매주. 둘째 주(11월 11일) 회차만 뺐다: 4주 범위에 3회차.
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2026-11-29T00:00:00+09:00");
+        OffsetDateTime first = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        stored(first, "FREQ=WEEKLY;EXDATE=20261111T010000Z");
+        when(events.ownedCalendar(1L, from, to)).thenReturn(List.of(event));
+        assertEquals(
+                List.of(
+                        first.toInstant(),
+                        first.plusWeeks(2).toInstant(),
+                        first.plusWeeks(3).toInstant()),
+                controller.calendar(auth(owner), from, to).stream()
+                        .map(m -> ((OffsetDateTime) m.get("instanceStart")).toInstant())
+                        .toList());
+    }
+
+    @Test
+    void untilAndExdateTogetherAreBothAppliedAndKeptWhenEndingOrSplittingTheSeries() {
+        OffsetDateTime seriesStart = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2027-01-01T00:00:00+09:00");
+        // 11월 25일(한국 시간)까지, 11월 11일만 뺐다: 4·18·25일.
+        stored(seriesStart, "FREQ=WEEKLY;UNTIL=20261125T145959Z;EXDATE=20261111T010000Z");
+        assertEquals(
+                List.of(
+                        seriesStart.toInstant(),
+                        seriesStart.plusWeeks(2).toInstant(),
+                        seriesStart.plusWeeks(3).toInstant()),
+                EventController.occurrenceRanges(event, from, to).stream()
+                        .map(r -> r.startAt().toInstant())
+                        .toList());
+        // 웹의 "이후 삭제"·"이후 수정"은 UNTIL 만 당기고 EXDATE 는 그대로 둔 규칙을 PUT 한다. 서버도 그대로 저장한다.
+        when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String cut = "FREQ=WEEKLY;UNTIL=20261118T005959Z;EXDATE=20261111T010000Z";
+        controller.update(auth(owner), 10L, input(seriesStart, cut));
+        assertEquals(cut, event.getRecurrenceRule());
+        assertEquals(
+                List.of(seriesStart.toInstant()),
+                EventController.occurrenceRanges(event, from, to).stream()
+                        .map(r -> r.startAt().toInstant())
+                        .toList());
+    }
+
+    @Test
+    void malformedOrTooManyExdatesAreRejected() {
+        var validator = Validation.buildDefaultValidatorFactory().getValidator();
+        assertTrue(validator.validate(input("FREQ=WEEKLY;EXDATE=20260811T100000Z")).isEmpty());
+        assertFalse(validator.validate(input("FREQ=WEEKLY;EXDATE=20260811")).isEmpty());
+        assertFalse(validator.validate(input("EXDATE=20260811T100000Z")).isEmpty());
+        // 형식은 맞지만 없는 날짜, recurrence_rule 컬럼(255자)을 넘는 규칙은 400.
+        String many =
+                "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE="
+                        + String.join(",", Collections.nCopies(13, "20260811T100000Z"));
+        for (String rule : List.of("FREQ=WEEKLY;EXDATE=20261340T100000Z", many)) {
+            ApiException error =
+                    assertThrows(
+                            ApiException.class, () -> controller.create(auth(owner), input(rule)));
+            assertEquals(HttpStatus.BAD_REQUEST, error.status);
+            if (rule.equals(many)) assertTrue(error.getMessage().contains("너무 많아요"));
+        }
+        verify(events, never()).save(any());
+    }
+
+    @Test
     void recurrenceRuleFormatIsValidated() {
         var validator = Validation.buildDefaultValidatorFactory().getValidator();
         assertFalse(validator.validate(input("FREQ=YEARLY")).isEmpty());

@@ -122,7 +122,11 @@ export function planReminders(
     seen.add(event.id);
     const seriesStart = new Date(event.seriesStartAt || event.startAt);
     const rule = event.recurrenceRule || "";
-    const starts = occurrenceStarts(seriesStart, rule, now, until, untilLimit(rule));
+    // "이 일정만 삭제"로 뺀 회차(EXDATE)는 알리지 않습니다.
+    const excluded = (/(?:^|;)EXDATE=([^;]*)/.exec(rule)?.[1] || "").split(",");
+    const starts = occurrenceStarts(seriesStart, rule, now, until, untilLimit(rule)).filter(
+      (start) => !excluded.includes(start.toISOString().replace(/[-:]|\.\d+/g, "")),
+    );
     for (const start of starts) {
       const at = new Date(start.getTime() - minutes * 60000);
       if (at <= now) continue;

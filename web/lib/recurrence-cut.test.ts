@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deleteChoices, editChoices, ruleEndingBefore, splitFollowing } from "./recurrence-cut.ts";
+import {
+  deleteChoices,
+  editChoices,
+  isLastOccurrence,
+  ruleEndingBefore,
+  ruleExcluding,
+  splitFollowing,
+} from "./recurrence-cut.ts";
 
 const INSTANCE = "2026-11-18T10:00:00+09:00";
 
@@ -16,19 +23,50 @@ test("기존 UNTIL 이 회차보다 이르면 바꾸지 않는다", () => {
   assert.equal(ruleEndingBefore("FREQ=WEEKLY;UNTIL=20261110T145959Z", INSTANCE), "FREQ=WEEKLY;UNTIL=20261110T145959Z");
 });
 
-test("반복 일정의 첫 회차가 아니면 이후 삭제와 전체 삭제를 고를 수 있다", () => {
-  const event = { recurrenceRule: "FREQ=WEEKLY", instanceStart: INSTANCE, seriesStartAt: "2026-11-04T01:00:00Z" };
-  assert.deepEqual(deleteChoices(event), ["following", "all"]);
+test("기존 UNTIL 이 없으면 EXDATE 앞(FREQ 바로 뒤)에 붙여 EXDATE 를 지킨다", () => {
+  assert.equal(
+    ruleEndingBefore("FREQ=WEEKLY;EXDATE=20261111T010000Z", INSTANCE),
+    "FREQ=WEEKLY;UNTIL=20261118T005959Z;EXDATE=20261111T010000Z",
+  );
 });
 
-test("첫 회차나 반복이 아닌 일정은 전체 삭제만 있다", () => {
+test("이 일정만 삭제: 회차 시작 시각(UTC)을 EXDATE 에 중복 없이 더하고 UNTIL 은 지우지 않는다", () => {
+  assert.equal(ruleExcluding("FREQ=WEEKLY", INSTANCE), "FREQ=WEEKLY;EXDATE=20261118T010000Z");
+  assert.equal(
+    ruleExcluding("FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z", INSTANCE),
+    "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z,20261118T010000Z",
+  );
+  // 다른 기기에서 이미 뺀 회차면 규칙을 그대로 둔다.
+  const once = ruleExcluding("FREQ=WEEKLY;UNTIL=20261231T145959Z", INSTANCE);
+  assert.equal(ruleExcluding(once, "2026-11-18T01:00:00Z"), once);
+});
+
+test("마지막 남은 회차: UNTIL 까지 다른 회차가 모두 빠졌을 때만 참이다", () => {
+  const series = { seriesStartAt: "2026-11-04T01:00:00Z", instanceStart: "2026-11-11T01:00:00Z" };
+  // 4·11·18일 중 4·18일을 이미 뺐다.
+  const rule = "FREQ=WEEKLY;UNTIL=20261118T145959Z;EXDATE=20261104T010000Z,20261118T010000Z";
+  assert.equal(isLastOccurrence({ ...series, recurrenceRule: rule }), true);
+  assert.equal(isLastOccurrence({ ...series, recurrenceRule: "FREQ=WEEKLY;UNTIL=20261118T145959Z" }), false);
+  // 끝없는 반복은 마지막이 아니다.
+  assert.equal(isLastOccurrence({ ...series, recurrenceRule: "FREQ=WEEKLY;EXDATE=20261104T010000Z" }), false);
+  // 매월은 판정하지 않고 그냥 뺀다.
+  assert.equal(isLastOccurrence({ ...series, recurrenceRule: rule.replace("WEEKLY", "MONTHLY") }), false);
+});
+
+test("반복 일정의 첫 회차가 아니면 이 일정만·이후·전체 삭제를 고를 수 있다", () => {
+  const event = { recurrenceRule: "FREQ=WEEKLY", instanceStart: INSTANCE, seriesStartAt: "2026-11-04T01:00:00Z" };
+  assert.deepEqual(deleteChoices(event), ["this", "following", "all"]);
+});
+
+test("첫 회차는 이 일정만·전체 삭제, 반복이 아닌 일정은 전체 삭제만 있다", () => {
   // 오프셋 표기만 다른 같은 순간도 첫 회차로 본다.
   assert.deepEqual(deleteChoices({ recurrenceRule: "FREQ=WEEKLY", instanceStart: INSTANCE, seriesStartAt: INSTANCE }), [
+    "this",
     "all",
   ]);
   assert.deepEqual(
     deleteChoices({ recurrenceRule: "FREQ=WEEKLY", instanceStart: INSTANCE, seriesStartAt: "2026-11-18T01:00:00Z" }),
-    ["all"],
+    ["this", "all"],
   );
   assert.deepEqual(deleteChoices({ recurrenceRule: "", instanceStart: INSTANCE, seriesStartAt: INSTANCE }), ["all"]);
   assert.deepEqual(deleteChoices({ recurrenceRule: "FREQ=WEEKLY" }), ["all"]);
@@ -75,5 +113,5 @@ test("수정 범위 선택은 삭제와 같은 규칙: 첫 회차나 반복이 �
   assert.deepEqual(editChoices(original), ["following", "all"]);
   assert.deepEqual(editChoices({ ...original, instanceStart: "2026-11-04T10:00:00+09:00" }), ["all"]);
   assert.deepEqual(editChoices({ ...original, recurrenceRule: "" }), ["all"]);
-  assert.equal(editChoices, deleteChoices);
+  assert.deepEqual(deleteChoices({ ...original, instanceStart: "2026-11-04T10:00:00+09:00" }), ["this", "all"]);
 });
