@@ -12,7 +12,7 @@ export function ruleUntil(rule: string) {
   const until = untilLimit(rule);
   return until ? format(until, "yyyy-MM-dd") : "";
 }
-// previous 규칙에 "이 일정만 삭제"로 뺀 회차(EXDATE)가 있으면 반복 종류·끝나는 날을 바꿔도 그대로 이어 붙입니다.
+// previous 규칙에 "이 일정만 삭제"로 뺀 회차(EXDATE)가 있으면 그대로 이어 붙입니다. 시작이 바뀌면 옮기고 반복 종류가 바뀌면 비우는 일은 서버(shiftExdates)·ruleFollowing 이 합니다.
 export function buildRule(frequency: string, until: string, previous = "") {
   if (!frequency) return frequency;
   const exdate = previous.split(";").find((part) => part.startsWith("EXDATE="));

@@ -328,6 +328,81 @@ class EventControllerTest {
                         .toList());
     }
 
+    private List<java.time.Instant> starts(OffsetDateTime from, OffsetDateTime to) {
+        return EventController.occurrenceRanges(event, from, to).stream()
+                .map(r -> r.startAt().toInstant())
+                .toList();
+    }
+
+    @Test
+    void movingTheWholeSeriesLaterKeepsTheSkippedWeekSkipped() {
+        // 11월 4일(수) 오전 10시(KST)부터 매주, 둘째 주(11일)를 뺐다. 모든 회차를 1시간 늦춘다.
+        OffsetDateTime first = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2026-11-29T00:00:00+09:00");
+        stored(first, "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z");
+        when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        OffsetDateTime later = first.plusHours(1);
+        // 웹은 EXDATE 를 그대로 보낸다. 옮기는 일은 서버가 한다.
+        controller.update(auth(owner), 10L, input(later, event.getRecurrenceRule()));
+        assertEquals(
+                "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T020000Z",
+                event.getRecurrenceRule());
+        assertEquals(
+                List.of(
+                        later.toInstant(),
+                        later.plusWeeks(2).toInstant(),
+                        later.plusWeeks(3).toInstant()),
+                starts(from, to));
+    }
+
+    @Test
+    void draggingTheSeriesByADayKeepsTheSkippedWeekSkipped() {
+        OffsetDateTime first = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        OffsetDateTime from = OffsetDateTime.parse("2026-11-01T00:00:00+09:00"),
+                to = OffsetDateTime.parse("2026-11-30T00:00:00+09:00");
+        stored(first, "FREQ=WEEKLY;EXDATE=20261111T010000Z");
+        when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        OffsetDateTime next = first.plusDays(1);
+        controller.move(
+                auth(owner),
+                10L,
+                Map.of("startAt", next.toString(), "endAt", next.plusHours(1).toString()));
+        assertEquals("FREQ=WEEKLY;EXDATE=20261112T010000Z", event.getRecurrenceRule());
+        assertEquals(
+                List.of(
+                        next.toInstant(),
+                        next.plusWeeks(2).toInstant(),
+                        next.plusWeeks(3).toInstant()),
+                starts(from, to));
+    }
+
+    @Test
+    void changingTheFrequencyClearsExdates() {
+        OffsetDateTime first = OffsetDateTime.parse("2026-11-04T10:00:00+09:00");
+        stored(first, "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z");
+        when(events.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        controller.update(
+                auth(owner),
+                10L,
+                input(first, "FREQ=DAILY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z"));
+        assertEquals("FREQ=DAILY;UNTIL=20261231T145959Z", event.getRecurrenceRule());
+    }
+
+    @Test
+    void monthlyExdatesFollowTheSameOccurrence() {
+        // 1월 30일부터 매월이면 2월 28일로 당겨진 뒤 3월 28일로 이어진다. 3월 회차를 뺀 채 시작을 1월 31일로 하루 늦춰도
+        // 회차는 31일·2월 28일·3월 28일이라, 시간 차이(하루)가 아니라 같은 번째 회차(3월 28일)로 옮겨야 계속 빠진다.
+        OffsetDateTime first = OffsetDateTime.parse("2027-01-30T10:00:00Z");
+        String rule = "FREQ=MONTHLY;EXDATE=20270328T100000Z";
+        assertEquals(rule, EventController.shiftExdates(rule, first, rule, first.plusDays(1)));
+        // 어떤 회차와도 맞지 않던 EXDATE 는 버린다.
+        String stale = "FREQ=MONTHLY;EXDATE=20270331T100000Z";
+        assertEquals(
+                "FREQ=MONTHLY",
+                EventController.shiftExdates(stale, first, stale, first.plusDays(1)));
+    }
+
     @Test
     void malformedOrTooManyExdatesAreRejected() {
         var validator = Validation.buildDefaultValidatorFactory().getValidator();
