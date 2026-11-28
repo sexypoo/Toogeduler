@@ -76,7 +76,11 @@ public class EventController {
         // 시작·종료는 같은 순간이면 오프셋이 달라도(예: DB에서 읽은 Z와 입력의 +09:00) 바뀌지 않은 것으로 본다.
         boolean moved =
                 !e.getStartAt().isEqual(body.startAt()) || !e.getEndAt().isEqual(body.endAt());
+        String previousRule = e.getRecurrenceRule();
+        OffsetDateTime previousStart = e.getStartAt();
         apply(e, body, user);
+        e.setRecurrenceRule(
+                shiftExdates(previousRule, previousStart, e.getRecurrenceRule(), e.getStartAt()));
         Event saved = events.save(e);
         // "바뀐 시간을 그룹 멤버에게 알리기"를 고른 그룹 공개 일정이고 시간이 실제로 바뀐 경우에만 알린다.
         if (moved
@@ -95,6 +99,8 @@ public class EventController {
                 end = OffsetDateTime.parse(body.get("endAt"));
         if (!end.isAfter(start))
             throw new ApiException(HttpStatus.BAD_REQUEST, "종료 시간은 시작 시간보다 뒤여야 합니다.");
+        e.setRecurrenceRule(
+                shiftExdates(e.getRecurrenceRule(), e.getStartAt(), e.getRecurrenceRule(), start));
         e.setStartAt(start);
         e.setEndAt(end);
         return view(events.save(e), true);
@@ -376,6 +382,39 @@ public class EventController {
             }
         }
         return out;
+    }
+
+    // 시리즈 시작이 previousStart에서 start로 바뀌면(모든 회차 수정·드래그 이동) EXDATE의 각 회차를
+    // 같은 번째 회차의 새 시작 시각으로 옮긴다. 웹은 EXDATE를 그대로 보내고, 옮기는 일은 여기서만 한다.
+    // 반복 종류(FREQ)가 바뀌면 맞는 회차가 없어지므로 EXDATE를 비우고, 어떤 회차와도 맞지 않던 값은 버린다.
+    static String shiftExdates(
+            String previousRule, OffsetDateTime previousStart, String rule, OffsetDateTime start) {
+        if (rule == null || !rule.contains("EXDATE=")) return rule;
+        boolean sameFreq =
+                previousRule != null
+                        && freqOf(previousRule).equals(freqOf(rule))
+                        && !freqOf(rule).isEmpty();
+        Set<Instant> excluded = excludedStarts(rule);
+        if ((sameFreq && previousStart.isEqual(start)) || excluded == null) return rule;
+        List<String> shifted = new ArrayList<>();
+        if (sameFreq) {
+            OffsetDateTime before = previousStart, after = start;
+            for (int n = 0; n < 5000 && shifted.size() < excluded.size(); n++) {
+                if (excluded.contains(before.toInstant()))
+                    shifted.add(UNTIL_UTC.format(after.toInstant()));
+                before = next(before, rule);
+                after = next(after, rule);
+            }
+        }
+        List<String> parts = new ArrayList<>();
+        for (String part : rule.split(";")) if (!part.startsWith("EXDATE=")) parts.add(part);
+        if (!shifted.isEmpty()) parts.add("EXDATE=" + String.join(",", shifted));
+        return String.join(";", parts);
+    }
+
+    private static String freqOf(String rule) {
+        for (String part : rule.split(";")) if (part.startsWith("FREQ=")) return part;
+        return "";
     }
 
     private static OffsetDateTime next(OffsetDateTime value, String rule) {

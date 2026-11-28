@@ -72,9 +72,34 @@ export function deleteChoices(event: Occurrence): ScopeChoice[] {
 export const editChoices = scopeChoices;
 
 /**
+ * "이 일정부터 이후 수정"의 새 시리즈 규칙: 이 회차 이전의 EXDATE 는 버리고, 이후 것은 새 시작과의 시간 차이만큼 옮깁니다.
+ * 반복 종류(FREQ)를 바꿨으면 맞는 회차가 없어지므로 EXDATE 를 모두 버립니다.
+ * ("모든 회차 수정"·드래그 이동은 서버 EventController.shiftExdates 가 옮깁니다.)
+ */
+export function ruleFollowing(rule: string, originalRule: string, instanceStart: string, startAt: string) {
+  const parts = rule.split(";").filter(Boolean);
+  const at = parts.findIndex((part) => part.startsWith("EXDATE="));
+  if (at < 0) return rule;
+  const from = Date.parse(instanceStart);
+  const delta = Date.parse(startAt) - from;
+  const freq = (value: string) => value.split(";").find((part) => part.startsWith("FREQ=")) || "";
+  const kept =
+    freq(rule) === freq(originalRule)
+      ? parts[at]
+          .slice(7)
+          .split(",")
+          .map(stampTime)
+          .filter((time): time is number => time !== null && time >= from)
+      : [];
+  if (!kept.length) parts.splice(at, 1);
+  else parts[at] = `EXDATE=${kept.map((time) => utcStamp(new Date(time + delta))).join(",")}`;
+  return parts.join(";");
+}
+
+/**
  * "이 일정부터 이후 수정": 원래 시리즈(cut)는 시작·끝·내용을 그대로 두고 이 회차 직전에서 끝내고,
  * 이 회차부터는 사용자가 고친 값으로 새 시리즈(next, id 없음)를 만듭니다.
- * next 의 규칙은 사용자가 고른 규칙이라, 원래 UNTIL 을 바꾸지 않았다면 그대로 이어집니다.
+ * next 의 규칙은 사용자가 고른 규칙이라, 원래 UNTIL 을 바꾸지 않았다면 그대로 이어집니다. EXDATE 는 ruleFollowing 으로 맞춥니다.
  */
 export function splitFollowing<T extends SeriesFields>(original: T, edited: T) {
   const cut: T & { announce: boolean } = {
@@ -85,7 +110,11 @@ export function splitFollowing<T extends SeriesFields>(original: T, edited: T) {
     announce: false,
   };
   const { id: _id, instanceStart: _at, seriesStartAt: _start, seriesEndAt: _end, ...rest } = edited;
-  const next = { ...rest, recurrenceRule: edited.recurrenceRule || "" };
+  const rule = edited.recurrenceRule || "";
+  const next = {
+    ...rest,
+    recurrenceRule: ruleFollowing(rule, original.recurrenceRule!, original.instanceStart!, edited.startAt!),
+  };
   return { cut, next };
 }
 
@@ -94,4 +123,12 @@ function untilOf(rule: string) {
   if (!until) return null;
   const [year, month, day, hour, minute, second] = until.slice(1).map(Number);
   return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+}
+
+// "20261111T010000Z" 를 밀리초로. 형식이 다르면 null.
+function stampTime(stamp: string) {
+  const at = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(stamp);
+  if (!at) return null;
+  const [year, month, day, hour, minute, second] = at.slice(1).map(Number);
+  return Date.UTC(year, month - 1, day, hour, minute, second);
 }

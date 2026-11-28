@@ -6,6 +6,7 @@ import {
   isLastOccurrence,
   ruleEndingBefore,
   ruleExcluding,
+  ruleFollowing,
   splitFollowing,
 } from "./recurrence-cut.ts";
 
@@ -114,4 +115,19 @@ test("수정 범위 선택은 삭제와 같은 규칙: 첫 회차나 반복이 �
   assert.deepEqual(editChoices({ ...original, instanceStart: "2026-11-04T10:00:00+09:00" }), ["all"]);
   assert.deepEqual(editChoices({ ...original, recurrenceRule: "" }), ["all"]);
   assert.deepEqual(deleteChoices({ ...original, instanceStart: "2026-11-04T10:00:00+09:00" }), ["this", "all"]);
+});
+
+test("이후 수정: 이 회차 이전의 뺀 회차는 버리고, 이후 것은 바꾼 시간만큼 옮겨 계속 뺀다", () => {
+  // 11일(이전)과 25일(이후)을 뺐다. 18일 회차부터 오전 10시 → 오후 2시.
+  const { next } = weeklyStudy("FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261111T010000Z,20261125T010000Z");
+  assert.equal(next.recurrenceRule, "FREQ=WEEKLY;UNTIL=20261231T145959Z;EXDATE=20261125T050000Z");
+  // 이후에 뺀 회차가 없으면 EXDATE 자체를 남기지 않는다.
+  assert.equal(weeklyStudy("FREQ=WEEKLY;EXDATE=20261111T010000Z").next.recurrenceRule, "FREQ=WEEKLY");
+});
+
+test("이후 수정: 반복 종류를 바꾸면 EXDATE 가 사라진다", () => {
+  assert.equal(
+    ruleFollowing("FREQ=DAILY;EXDATE=20261125T010000Z", "FREQ=WEEKLY;EXDATE=20261125T010000Z", INSTANCE, INSTANCE),
+    "FREQ=DAILY",
+  );
 });
